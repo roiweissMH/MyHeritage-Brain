@@ -17,6 +17,14 @@ bash "$REPO_DIR/scripts/sync-templates.sh" --out "$TMP_OUT" >/dev/null
 assert_file_exists "$TMP_OUT/SKILL.md.tmpl" "SKILL.md.tmpl missing"
 assert_file_exists "$TMP_OUT/install.sh.tmpl" "install.sh.tmpl missing"
 assert_file_exists "$TMP_OUT/README.md.tmpl" "README.md.tmpl missing"
+
+# --- README.md.tmpl shape ---
+readme_tmpl="$(cat "$TMP_OUT/README.md.tmpl")"
+assert_contains "$readme_tmpl" "<DOMAIN>" "README.md.tmpl should use <DOMAIN> placeholder"
+assert_not_contains "$readme_tmpl" "Status of the brain" "README.md.tmpl should strip the snapshot section"
+assert_not_contains "$readme_tmpl" "& Payments" "README.md.tmpl should strip Billing-specific '& Payments' phrase"
+assert_not_contains "$readme_tmpl" "Billing-Brain" "README.md.tmpl should not contain Billing-Brain"
+assert_not_contains "$readme_tmpl" "expand to <DOMAIN> and Site" "README.md.tmpl should strip the Billing pilot/roadmap sentence"
 assert_file_exists "$TMP_OUT/.gitignore" ".gitignore missing"
 assert_file_exists "$TMP_OUT/brain/_meta.md.tmpl" "_meta.md.tmpl missing"
 assert_file_exists "$TMP_OUT/brain/brain.md.tmpl" "brain.md.tmpl missing"

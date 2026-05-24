@@ -34,8 +34,10 @@ touch "$OUT_DIR/brain/references/.gitkeep"
 # Uses sed with '|' delimiter to avoid escaping forward slashes in paths.
 substitute() {
   sed \
-    -e 's|Billing-Brain|<Skill-Name>|g' \
+    -e 's| & Payments||g' \
+    -e 's|skills/Billing-Brain|skills/<Skill-Name>|g' \
     -e 's|/Billing-Brain|<skill-cmd>|g' \
+    -e 's|Billing-Brain|<Skill-Name>|g' \
     -e 's|brains/billing/|brains/<domain-slug>/|g' \
     -e 's|brains/billing|brains/<domain-slug>|g' \
     -e 's|mh-billing-brain|mh-<domain-slug>-brain|g' \
@@ -58,6 +60,7 @@ chmod +x "$OUT_DIR/install.sh.tmpl"
 # 4. README.md.tmpl — substitute. Strip the "Status of the brain (snapshot)" section
 #    since it's Billing-specific; the scaffolder regenerates a fresh snapshot.
 substitute < "$BILLING_DIR/README.md" \
+  | sed -e 's|This is the pilot domain of a broader \*\*MH Product Brain\*\* initiative\. The same pattern is intended to expand to Backoffice and Site domains\.|This brain follows the **MH Product Brain** pattern described in `docs/design-spec.md`.|' \
   | awk '
       /^## Status of the brain/ { skip=1 }
       !skip { print }
@@ -69,7 +72,6 @@ awk '
   /^## Topic template/ { in_template=1 }
   /^<!-- Topics begin below this line -->/ { print; in_template=0; in_topics=1; next }
   in_topics && /^## / { skip_topic=1 }
-  skip_topic && /^## / && !/^## Topic template/ { skip_topic=1 }
   skip_topic { next }
   { print }
 ' "$BILLING_DIR/brain/brain.md" | substitute > "$OUT_DIR/brain/brain.md.tmpl"

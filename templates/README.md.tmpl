@@ -1,8 +1,8 @@
 # MH <DOMAIN> Brain
 
-A curated, interview-driven knowledge base for the **<DOMAIN> & Payments** domain at MyHeritage, paired with a Claude Code skill (`/<Skill-Name>`) that answers questions grounded only in the brain's content.
+A curated, interview-driven knowledge base for the **<DOMAIN>** domain at MyHeritage, paired with a Claude Code skill (`<skill-cmd>`) that answers questions grounded only in the brain's content.
 
-This is the pilot domain of a broader **MH Product Brain** initiative. The same pattern is intended to expand to Backoffice and Site domains.
+This brain follows the **MH Product Brain** pattern described in `docs/design-spec.md`.
 
 ## What's in the repo
 
@@ -23,16 +23,16 @@ mh-<domain-slug>-brain/
 
 ## How the skill works
 
-`/<Skill-Name>` is a Claude Code skill with six commands. All answers are grounded in `brain/brain.md` and its linked references — the skill never fills in from general knowledge.
+`<skill-cmd>` is a Claude Code skill with six commands. All answers are grounded in `brain/brain.md` and its linked references — the skill never fills in from general knowledge.
 
 | Command | What it does |
 |---|---|
-| `/<Skill-Name> <question>` | Query the brain. Cites topics, sections, references, and tags status. |
-| `/<Skill-Name> interview [topic]` | Run a structured interview on a topic and distill into `brain.md`. |
-| `/<Skill-Name> verify <topic>` | Cross-check the brain's facts against linked reference docs. |
-| `/<Skill-Name> status` | One-screen audit of brain health: coverage, stale topics, open questions, action suggestions. |
-| `/<Skill-Name> capture <topic> "<note>"` | Quick in-the-moment append (dated history entry, fact change). |
-| `/<Skill-Name> refresh <topic>` | Delta interview — what's changed since `last-updated`. |
+| `<skill-cmd> <question>` | Query the brain. Cites topics, sections, references, and tags status. |
+| `<skill-cmd> interview [topic]` | Run a structured interview on a topic and distill into `brain.md`. |
+| `<skill-cmd> verify <topic>` | Cross-check the brain's facts against linked reference docs. |
+| `<skill-cmd> status` | One-screen audit of brain health: coverage, stale topics, open questions, action suggestions. |
+| `<skill-cmd> capture <topic> "<note>"` | Quick in-the-moment append (dated history entry, fact change). |
+| `<skill-cmd> refresh <topic>` | Delta interview — what's changed since `last-updated`. |
 
 See `SKILL.md` for full behavior and `docs/design-spec.md` for the architecture.
 
@@ -44,7 +44,7 @@ cd mh-<domain-slug>-brain
 ./install.sh
 ```
 
-Then restart Claude Code so it picks up the new skill. Confirm with `/<Skill-Name> status`.
+Then restart Claude Code so it picks up the new skill. Confirm with `<skill-cmd> status`.
 
 The install script deploys files to the standard Claude Code paths:
 

@@ -6,7 +6,7 @@
 #   ./install.sh --symlink  Symlink files (changes to deployed files propagate back to your clone)
 #
 # After running, restart Claude Code so it discovers the new skill, then run
-# `/<Skill-Name> status` to verify.
+# `<skill-cmd> status` to verify.
 
 set -euo pipefail
 
@@ -69,4 +69,4 @@ fi
 
 echo
 echo "Install complete. Restart Claude Code, then run:"
-echo "  /<Skill-Name> status"
+echo "  <skill-cmd> status"
