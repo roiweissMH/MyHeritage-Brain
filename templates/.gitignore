@@ -1,0 +1,11 @@
+# Backup files created by install.sh
+*.bak.*
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Local editor state
+.vscode/
+.idea/
+*.swp

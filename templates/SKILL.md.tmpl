@@ -1,0 +1,183 @@
+---
+name: <Skill-Name>
+description: Query, interview, verify, audit, capture, or refresh the <DOMAIN> domain brain. Loads ~/Claude/brains/<domain-slug>/ as grounded context. Use when answering <DOMAIN> questions, capturing <DOMAIN> knowledge, or checking <DOMAIN> brain health.
+---
+
+# <Skill-Name> Skill
+
+This skill is the interface to the <DOMAIN> domain brain at `~/Claude/brains/<domain-slug>/`. The brain is a curated markdown knowledge base built through interviews with Roi (Product, MyHeritage). The skill answers questions grounded **only** in the brain and its references — never from general knowledge.
+
+## On every invocation
+
+1. Read `~/Claude/brains/<domain-slug>/_meta.md` to orient. This tells you what topics exist, their status, last-updated dates, reference counts, and the reference-stub backlog.
+2. Parse the user's input to determine the command. Default is **query**. Explicit prefixes: `interview`, `verify`, `status`, `capture`, `refresh`.
+3. Run only the matching command's behavior below.
+
+## Hard rules (apply to every command)
+
+1. **No hallucination.** If a fact isn't in `brain.md` or a linked reference under `references/`, say "I don't know" and offer to interview. Never fill in from general <DOMAIN> knowledge.
+2. **Always cite.** Every factual claim cites: topic name, section (Narrative / Facts / History / References), and any references used.
+3. **Always tag status.** Tag each cited fact with the topic's status: `interviewed`, `verified`, or `empty`.
+4. **Reference-thin warning.** If an answer rests on narrative only (no references attached to the cited topic(s)), end the answer with: `⚠ No reference docs attached to this topic — answer is interview-only.`
+5. **History is dated.** When citing a historical decision, include the date stored with the entry.
+6. **Open questions surface.** When a query touches a topic with open questions, list those open questions at the end of the answer.
+
+## Command: query (default)
+
+**Trigger:** any input that doesn't start with `interview`, `verify`, `status`, `capture`, or `refresh`.
+
+**Behavior:**
+1. Read `_meta.md` (already done in "On every invocation").
+2. Identify which topics in `_meta.md` are relevant to the question. If none clearly match, say so and offer to interview a new topic.
+3. Load only the relevant H2 sections from `brain.md`. Read referenced files in `references/` that the relevant topics link to.
+4. Produce an answer grounded only in what you read. Follow the hard rules above.
+
+**Output format:**
+
+```
+<answer prose, with inline citations of the form "(Topic: <name>, <section>, status: <status>)">
+
+References used:
+- references/<filename>.md
+
+⚠ <if reference-thin warning applies>
+
+Open questions on the topics touched:
+- <list, if any>
+```
+
+## Command: interview
+
+**Trigger:** `interview` or `interview <topic>`.
+
+**Behavior:**
+
+If no topic given: read `_meta.md`, find the most logical next gap (first `empty` topic in list order), propose it to the user: "Want to do `<topic>` next? It's still empty." Accept or take a different topic.
+
+For the chosen topic, work through these prompt patterns, one at a time, capturing every user response verbatim:
+
+1. **Wide opener:** "Walk me through how <DOMAIN> handles `<topic>` — pretend I just joined the team."
+2. **Facts probe:** "Who owns this? What systems are involved? What numbers should I know?"
+3. **History probe:** "What's changed here in the last year or two, and why?"
+4. **Unwritten-rules probe:** "What do new PMs always get wrong about this?"
+5. **Reference-collection probe (mandatory at end of every topic):** "Which docs back this up — PRDs, pricing sheets, roadmap items, dashboards, contracts? Paste links or filenames and I'll create stubs in `references/` and note what's missing."
+6. **Close:** "What don't you know about this topic that you'd want a reference doc to cover?" (Seeds Open questions.)
+
+**During interview:**
+- Append everything to `interview-log.md` under a new section: `## <topic> — YYYY-MM-DD\n\n<verbatim Q&A>`.
+- For each reference named but not yet provided, create a stub file at `references/<slugified-name>.md` with content:
+
+  ```markdown
+  # <Reference name>
+
+  <!-- status: missing -->
+  <!-- requested-by-topic: <topic> -->
+  <!-- requested-date: YYYY-MM-DD -->
+
+  Stub file. Replace this content with the real reference doc when available.
+  ```
+
+  Also append a line under "Reference stub backlog" in `_meta.md`.
+
+**When user says "distill" or session ends:**
+1. Read the latest entry in `interview-log.md` for this topic.
+2. Distill into the topic template (Narrative + Facts + History & decisions + Open questions + References) — the template is documented at the top of `brain.md`.
+3. If the topic doesn't yet exist as an H2 in `brain.md`, append it. If it does, replace the existing topic block with the new content.
+4. Set `status: interviewed` and `last-updated: <today YYYY-MM-DD>` in the topic's HTML comments. Set `references: <count>` to the number of references linked in the References section.
+5. Update the corresponding row in `_meta.md`: status, last-updated, refs count.
+6. Confirm to the user: "Topic `<name>` distilled. Status: interviewed. References attached: <count>."
+
+## Command: verify
+
+**Trigger:** `verify <topic>`.
+
+**Behavior:**
+1. Load the topic's H2 block from `brain.md`.
+2. Load every file linked in the topic's References section. Skip stub files (status: missing) and note them.
+3. For each fact in the Facts section and each item in History & decisions, check whether it is consistent with the references. List:
+   - Aligned facts (referenced and consistent).
+   - Unbacked facts (no reference covers them — not a discrepancy, just a gap).
+   - Discrepancies (a fact in the brain conflicts with a reference).
+4. If discrepancies exist:
+   - Append each as a bullet in the topic's Open questions section: `- [VERIFY DISCREPANCY YYYY-MM-DD] <fact in brain> vs <fact in reference at references/<filename>.md>`.
+   - Leave status as `interviewed`.
+5. If no discrepancies:
+   - Set `status: verified` in the topic's HTML comments.
+   - Update `_meta.md` row to status `verified`.
+6. Update `last-updated: <today>` either way.
+7. Output the verification report: aligned count, unbacked count, discrepancies (with details), new status.
+
+## Command: status
+
+**Trigger:** `status`.
+
+**Behavior:**
+1. Read `_meta.md` (topic table) and `brain.md` (to extract Open questions per topic).
+2. Compute `stale` flag per topic: if `last-updated` is more than 90 days before today, mark stale (in the output only — do not change stored status).
+3. Collect the oldest Open questions across all topics. "Oldest" is determined by the date attached to the question, if any; otherwise by topic last-updated. Take up to the 5 oldest.
+4. Output:
+
+   ```
+   <DOMAIN> Brain — Status as of YYYY-MM-DD
+
+   Coverage:
+     empty:        <count> topic(s)
+     interviewed:  <count>
+     verified:     <count>
+
+   Topics:
+     <num>. <topic> — <status>  (last-updated: <date>, refs: <n>) [STALE if applicable]
+     ...
+
+   Reference stub backlog: <count>
+     <list slugs>
+
+   Oldest open questions:
+     - [<topic>] <question>
+     - ...
+
+   Action suggestions:
+     - Next interview: <first empty topic>
+     - Refresh due: <oldest stale topic, if any>
+     - Reference collection: <list 3 stubs to chase, if any>
+   ```
+
+## Command: capture
+
+**Trigger:** `capture <topic> "<note>"`.
+
+**Behavior:**
+1. Locate the topic's H2 in `brain.md`. If no match, say "Topic `<topic>` not found in brain. Did you mean: <fuzzy matches>?" and stop.
+2. Decide whether the note is a history/decision or a fact change:
+   - If it describes a change, decision, or event → append as a bullet under History & decisions: `- **YYYY-MM-DD:** <note>`.
+   - If it adjusts an existing fact value → update the Facts section in place AND log the change as a History & decisions bullet.
+3. Update `last-updated: <today>` in the topic's HTML comments.
+4. If the topic was `verified`, change to `interviewed` (new line is unverified).
+5. Update `_meta.md` row.
+6. Confirm: "Captured to `<topic>`: <note>. Status: <new status>. Last-updated: <today>."
+
+## Command: refresh
+
+**Trigger:** `refresh <topic>`.
+
+**Behavior:**
+1. Load the topic's H2 from `brain.md`.
+2. Output the topic's current narrative + facts + history to the user, then ask: "Here's what the brain knows about `<topic>` as of `<last-updated>`. What's changed since then?"
+3. Run targeted follow-ups (not the full interview battery):
+   - "Anything new in the Facts block — owners, systems, numbers?"
+   - "New history/decisions to log?"
+   - "Any open questions that got answered? Any new ones?"
+   - "Any new reference docs we should attach?"
+4. Capture verbatim into `interview-log.md` under `## <topic> — YYYY-MM-DD (refresh)`.
+5. On "distill" or session end: merge the changes into the existing topic block in `brain.md`. Do NOT discard prior narrative — add to it; replace only what the user said is wrong.
+6. Update `last-updated: <today>`. Keep status as it was (refresh doesn't drop verified to interviewed unless new unverified facts were added — in that case, drop to interviewed and note the affected facts in Open questions).
+7. Update `_meta.md` row.
+
+---
+
+## Notes for Claude when running this skill
+
+- This is a long-running, additive system. Never overwrite content unless explicitly told to. When in doubt, append and ask.
+- All file edits are markdown. Preserve the topic template structure precisely (HTML comments, section headings, bullet conventions).
+- The user (Roi) is the source of truth for tacit knowledge. References are the source of truth for hard facts.
+- If you hit a sandbox/permission error writing to the brain directory, surface the error and ask Roi for permission — do not silently fail or skip the write.

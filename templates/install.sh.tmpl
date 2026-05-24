@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# install.sh — deploy SKILL.md and brain/ into Claude Code's standard paths.
+#
+# Usage:
+#   ./install.sh            Copy files (default; safe — your clone can move/delete without breaking the install)
+#   ./install.sh --symlink  Symlink files (changes to deployed files propagate back to your clone)
+#
+# After running, restart Claude Code so it discovers the new skill, then run
+# `/<Skill-Name> status` to verify.
+
+set -euo pipefail
+
+MODE="copy"
+if [[ "${1:-}" == "--symlink" ]]; then
+  MODE="symlink"
+elif [[ -n "${1:-}" ]]; then
+  echo "Unknown argument: $1"
+  echo "Usage: $0 [--symlink]"
+  exit 2
+fi
+
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+SKILL_SRC="$REPO_DIR/SKILL.md"
+SKILL_DST_DIR="$HOME/.claude/skills/<Skill-Name>"
+SKILL_DST="$SKILL_DST_DIR/SKILL.md"
+
+BRAIN_SRC="$REPO_DIR/brain"
+BRAIN_DST="$HOME/Claude/brains/<domain-slug>"
+
+if [[ ! -f "$SKILL_SRC" ]]; then
+  echo "Error: SKILL.md not found at $SKILL_SRC. Run from inside a checkout of mh-<domain-slug>-brain."
+  exit 1
+fi
+
+if [[ ! -d "$BRAIN_SRC" ]]; then
+  echo "Error: brain/ not found at $BRAIN_SRC. Run from inside a checkout of mh-<domain-slug>-brain."
+  exit 1
+fi
+
+mkdir -p "$SKILL_DST_DIR"
+mkdir -p "$(dirname "$BRAIN_DST")"
+
+backup_if_exists() {
+  local path="$1"
+  if [[ -e "$path" || -L "$path" ]]; then
+    local backup="${path}.bak.$(date +%Y%m%d-%H%M%S)"
+    echo "  Backing up existing $path → $backup"
+    mv "$path" "$backup"
+  fi
+}
+
+backup_if_exists "$SKILL_DST"
+backup_if_exists "$BRAIN_DST"
+
+if [[ "$MODE" == "symlink" ]]; then
+  ln -s "$SKILL_SRC" "$SKILL_DST"
+  ln -s "$BRAIN_SRC" "$BRAIN_DST"
+  echo "Symlinked:"
+  echo "  $SKILL_DST → $SKILL_SRC"
+  echo "  $BRAIN_DST → $BRAIN_SRC"
+else
+  cp "$SKILL_SRC" "$SKILL_DST"
+  cp -R "$BRAIN_SRC" "$BRAIN_DST"
+  echo "Copied:"
+  echo "  $SKILL_SRC → $SKILL_DST"
+  echo "  $BRAIN_SRC → $BRAIN_DST"
+fi
+
+echo
+echo "Install complete. Restart Claude Code, then run:"
+echo "  /<Skill-Name> status"
