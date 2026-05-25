@@ -32,7 +32,7 @@ restore_orig() {
     rm -f "$ORIG_SKILL"
   fi
 }
-trap 'rm -rf "$WORK"; restore_orig' EXIT
+trap 'restore_orig; rm -rf "$WORK"' EXIT
 
 # --- Default (copy) mode ---
 bash "$REPO_DIR/install.sh" >/dev/null
