@@ -110,8 +110,9 @@ touch "$NEW_REPO/brain/references/.gitkeep"
 # Substitution: write input to stdin, replace placeholders, write to stdout.
 # Uses sed with the `|` delimiter; values are escaped for that delimiter.
 escape_sed() {
-  # Escape ampersand, pipe, and backslash for sed replacement.
-  printf '%s' "$1" | sed -e 's/[\\&|]/\\&/g'
+  # Flatten newlines to spaces, then escape backslash, ampersand, pipe
+  # for safe use as a sed replacement string.
+  printf '%s' "$1" | tr '\n' ' ' | sed -e 's/[\\&|]/\\&/g'
 }
 
 DOMAIN_ESC="$(escape_sed "$DOMAIN")"
@@ -228,12 +229,13 @@ EOF
 done < "$ANCHORS_FILE"
 
 # 9. docs/design-spec.md — copy the New-Brain design spec into the new repo.
-DESIGN_SPEC="$HOME/Claude/docs/superpowers/specs/2026-05-24-new-brain-meta-skill-design.md"
+DESIGN_SPEC="$REPO_DIR/docs/design-spec.md"
 if [[ -f "$DESIGN_SPEC" ]]; then
   cp "$DESIGN_SPEC" "$NEW_REPO/docs/design-spec.md"
 else
-  # Fall back to a stub if the spec isn't on disk (e.g., test environment).
-  echo "# Design spec not found at install time. See mh-new-brain/docs/design-spec.md." \
+  # Fall back to a stub if the in-repo spec doesn't exist yet (e.g., this
+  # task ran before Task 6, or the file was deleted).
+  echo "# Design spec not yet copied into mh-new-brain/docs/. Run Task 6 to populate." \
     > "$NEW_REPO/docs/design-spec.md"
 fi
 

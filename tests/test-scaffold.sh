@@ -144,4 +144,38 @@ else
   TESTS_RUN=$((TESTS_RUN + 1))
 fi
 
+# --- Multi-line description survives via newline flattening ---
+WORK2="$(mktemp -d)"
+TOPICS2="$WORK2/topics.txt"
+ANCHORS2="$WORK2/anchors.txt"
+LOG2="$WORK2/bootstrap-log.md"
+cat > "$TOPICS2" <<'EOF'
+SingleTopic|just one
+EOF
+cat > "$ANCHORS2" <<'EOF'
+Single Anchor|
+EOF
+printf '## Bootstrap — 2026-05-24\n' > "$LOG2"
+
+MULTI_LINE_DESC="$(printf 'First line of description.\nSecond line of description.')"
+
+bash "$REPO_DIR/scripts/scaffold.sh" \
+  --root "$WORK2" \
+  --domain "Multiline" \
+  --slug "multiline" \
+  --skill-name "Multiline-Brain" \
+  --description "$MULTI_LINE_DESC" \
+  --audience "x" \
+  --owner "y" \
+  --bootstrap-date "2026-05-24" \
+  --topics-file "$TOPICS2" \
+  --anchors-file "$ANCHORS2" \
+  --interview-log-file "$LOG2" \
+  > /dev/null
+
+MULTI_META="$(cat "$WORK2/mh-multiline-brain/brain/_meta.md")"
+assert_contains "$MULTI_META" "First line of description. Second line of description." \
+  "multi-line description should be flattened with a space"
+rm -rf "$WORK2"
+
 test_summary "scaffold"
