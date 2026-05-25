@@ -55,8 +55,8 @@ After Phase 4 completes, the PM has:
 ## Install
 
 ```bash
-git clone <mh-new-brain-repo-url> mh-new-brain
-cd mh-new-brain
+git clone https://github.com/roiweissMH/MyHeritage-Brain.git ~/Claude/mh-new-brain
+cd ~/Claude/mh-new-brain
 ./install.sh
 ```
 

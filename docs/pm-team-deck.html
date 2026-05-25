@@ -847,13 +847,13 @@ Install complete. Restart Claude Code, then run: /Backoffice-Brain status</span>
   <h3 style="margin-top: 28px;">Prerequisites</h3>
   <ul class="bullet">
     <li><strong>Claude Code installed and signed in.</strong> If you don't have it yet, ping <code class="term">#pm-tooling</code> or Roi for access.</li>
-    <li><strong>Access to the internal <code class="term">mh-new-brain</code> Git repo.</strong> Roi will share the URL once published. If you can't see it, request access.</li>
+    <li><strong>Access to the <code class="term">MyHeritage-Brain</code> Git repo</strong> at <code class="term">github.com/roiweissMH/MyHeritage-Brain</code>. Ping Roi if you can't see it — he'll add you as a collaborator.</li>
     <li><strong>Terminal access.</strong> The install script runs as a shell command — <em>not</em> from inside a Claude Code conversation.</li>
   </ul>
 
   <h3 style="margin-top: 32px;">Three commands, in your terminal</h3>
   <pre class="shell"><span class="comment"># 1. Clone the repo</span>
-<span class="prompt">$</span> <span class="cmd">git clone &lt;internal-git-url&gt;/mh-new-brain.git ~/Claude/mh-new-brain</span>
+<span class="prompt">$</span> <span class="cmd">git clone https://github.com/roiweissMH/MyHeritage-Brain.git ~/Claude/mh-new-brain</span>
 
 <span class="comment"># 2. Install the skill</span>
 <span class="prompt">$</span> <span class="cmd">cd ~/Claude/mh-new-brain && ./install.sh</span>
@@ -891,11 +891,11 @@ Install complete. Restart Claude Code, then run: /New-Brain</span>
       <pre class="shell"><span class="comment"># Roi (one time, already done):</span>
 <span class="prompt">$</span> <span class="cmd">cd ~/Claude/mh-new-brain</span>
 <span class="prompt">$</span> <span class="cmd">git remote add origin \
-    &lt;internal-git&gt;/mh-new-brain.git</span>
+    https://github.com/roiweissMH/MyHeritage-Brain.git</span>
 <span class="prompt">$</span> <span class="cmd">git push -u origin main</span>
 
 <span class="comment"># You (one time, each PM):</span>
-<span class="prompt">$</span> <span class="cmd">git clone &lt;internal-git&gt;/mh-new-brain.git \
+<span class="prompt">$</span> <span class="cmd">git clone https://github.com/roiweissMH/MyHeritage-Brain.git \
     ~/Claude/mh-new-brain</span>
 <span class="prompt">$</span> <span class="cmd">cd ~/Claude/mh-new-brain && ./install.sh</span></pre>
     </div>
@@ -905,11 +905,11 @@ Install complete. Restart Claude Code, then run: /New-Brain</span>
       <pre class="shell"><span class="comment"># You (when ready to share):</span>
 <span class="prompt">$</span> <span class="cmd">cd ~/Claude/mh-&lt;your-domain&gt;-brain</span>
 <span class="prompt">$</span> <span class="cmd">git remote add origin \
-    &lt;internal-git&gt;/mh-&lt;your-domain&gt;-brain.git</span>
+    https://github.com/&lt;you&gt;/mh-&lt;your-domain&gt;-brain.git</span>
 <span class="prompt">$</span> <span class="cmd">git push -u origin main</span>
 
 <span class="comment"># Other PMs (when they want to consult):</span>
-<span class="prompt">$</span> <span class="cmd">git clone &lt;internal-git&gt;/mh-&lt;your-domain&gt;-brain.git \
+<span class="prompt">$</span> <span class="cmd">git clone https://github.com/&lt;you&gt;/mh-&lt;your-domain&gt;-brain.git \
     ~/Claude/mh-&lt;your-domain&gt;-brain</span>
 <span class="prompt">$</span> <span class="cmd">cd ~/Claude/mh-&lt;your-domain&gt;-brain && ./install.sh</span></pre>
     </div>
