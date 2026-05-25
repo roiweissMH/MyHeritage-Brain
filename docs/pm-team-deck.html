@@ -840,21 +840,41 @@ Install complete. Restart Claude Code, then run: /Backoffice-Brain status</span>
 <!-- Slide 15: Install -->
 <section class="slide" id="s15">
   <span class="slide-num">15 · 18</span>
-  <div class="eyebrow">Setup</div>
-  <h2>Install in 3 lines.</h2>
-  <p class="lead">If you already have Claude Code installed and configured, getting <code class="term">/New-Brain</code> running on your machine is a one-time, three-line setup.</p>
-  <pre class="shell"><span class="prompt">$</span> <span class="cmd">git clone &lt;internal-git-url&gt;/mh-new-brain ~/Claude/mh-new-brain</span>
+  <div class="eyebrow">Setup · one-time · ~5 minutes</div>
+  <h2>Install <code class="term">/New-Brain</code> on your machine.</h2>
+  <p class="lead">A one-time setup. After this, <code class="term">/New-Brain</code> is available in every Claude Code session on your laptop — until you uninstall it.</p>
+
+  <h3 style="margin-top: 28px;">Prerequisites</h3>
+  <ul class="bullet">
+    <li><strong>Claude Code installed and signed in.</strong> If you don't have it yet, ping <code class="term">#pm-tooling</code> or Roi for access.</li>
+    <li><strong>Access to the internal <code class="term">mh-new-brain</code> Git repo.</strong> Roi will share the URL once published. If you can't see it, request access.</li>
+    <li><strong>Terminal access.</strong> The install script runs as a shell command — <em>not</em> from inside a Claude Code conversation.</li>
+  </ul>
+
+  <h3 style="margin-top: 32px;">Three commands, in your terminal</h3>
+  <pre class="shell"><span class="comment"># 1. Clone the repo</span>
+<span class="prompt">$</span> <span class="cmd">git clone &lt;internal-git-url&gt;/mh-new-brain.git ~/Claude/mh-new-brain</span>
+
+<span class="comment"># 2. Install the skill</span>
 <span class="prompt">$</span> <span class="cmd">cd ~/Claude/mh-new-brain && ./install.sh</span>
 <span class="out">Copied: ~/Claude/mh-new-brain/SKILL.md → ~/.claude/skills/New-Brain/SKILL.md
 Install complete. Restart Claude Code, then run: /New-Brain</span>
-<span class="prompt">$</span> <span class="cmd"># Restart Claude Code. /New-Brain is now available.</span></pre>
 
-  <h3>Don't have Claude Code yet?</h3>
-  <p>You'll need it to use any brain (yours or someone else's). Setup docs and access provisioning: ping Roi or the PM tooling channel.</p>
+<span class="comment"># 3. Restart Claude Code (quit and reopen)</span></pre>
 
-  <h3>Updates later</h3>
+  <h3 style="margin-top: 28px;">Verify it worked</h3>
+  <p>In a new Claude Code conversation, type <code class="term">/</code> — <code class="term">/New-Brain</code> should appear in the autocomplete list. Or from your terminal:</p>
+  <pre class="shell"><span class="prompt">$</span> <span class="cmd">ls ~/.claude/skills/New-Brain/SKILL.md</span>
+<span class="out">/Users/&lt;you&gt;/.claude/skills/New-Brain/SKILL.md</span></pre>
+  <p>If you see the file, you're set. Type <code class="term">/New-Brain</code> in Claude Code to start building your first brain.</p>
+
+  <h3 style="margin-top: 28px;">Updating later (when Roi pushes changes)</h3>
   <pre class="shell"><span class="prompt">$</span> <span class="cmd">cd ~/Claude/mh-new-brain && git pull && ./install.sh</span></pre>
-  <p>That's it. No auto-update mechanism, no version negotiation. You pull when you want changes.</p>
+  <p>No auto-update. Pull when you want the latest version.</p>
+
+  <div class="callout">
+    <strong>Common gotcha:</strong> run <code class="term">./install.sh</code> in <em>your own terminal</em>, not from inside Claude Code. The script writes to <code class="term">~/.claude/skills/</code>, which Claude Code's sandbox blocks Claude from touching. Your terminal has no such restriction — it just works.
+  </div>
 </section>
 
 <!-- Slide 16: Sharing & Git -->
@@ -862,28 +882,48 @@ Install complete. Restart Claude Code, then run: /New-Brain</span>
   <span class="slide-num">16 · 18</span>
   <div class="eyebrow">Sharing</div>
   <h2>How brains travel.</h2>
-  <p class="lead">Every brain is a self-contained Git repo. Sharing one is as boring as pushing a repo — which is exactly the point.</p>
+  <p class="lead">Two repos. Two flows. Both are just Git pushes and clones — which is exactly the point.</p>
 
-  <div class="grid cols-2">
-    <div class="card">
-      <div class="label">/New-Brain itself</div>
-      <h3>Lives in one shared repo</h3>
-      <p>The bootstrapper lives at <code class="term">mh-new-brain</code> on MyHeritage's internal Git. Each PM clones it once, runs <code class="term">./install.sh</code>, and has <code class="term">/New-Brain</code> available forever (until they delete it).</p>
+  <div class="split">
+    <div class="col">
+      <h3><span class="badge">Flow A</span> How <code class="term">/New-Brain</code> reached you</h3>
+      <p>Roi published the bootstrapper once to MyHeritage's internal Git. From your perspective, you do the 3-step install on Slide 15. You don't have to think about it — the URL just gets shared.</p>
+      <pre class="shell"><span class="comment"># Roi (one time, already done):</span>
+<span class="prompt">$</span> <span class="cmd">cd ~/Claude/mh-new-brain</span>
+<span class="prompt">$</span> <span class="cmd">git remote add origin \
+    &lt;internal-git&gt;/mh-new-brain.git</span>
+<span class="prompt">$</span> <span class="cmd">git push -u origin main</span>
+
+<span class="comment"># You (one time, each PM):</span>
+<span class="prompt">$</span> <span class="cmd">git clone &lt;internal-git&gt;/mh-new-brain.git \
+    ~/Claude/mh-new-brain</span>
+<span class="prompt">$</span> <span class="cmd">cd ~/Claude/mh-new-brain && ./install.sh</span></pre>
     </div>
-    <div class="card">
-      <div class="label">Your own brain</div>
-      <h3>Also a Git repo — yours to share</h3>
-      <p>The repo Claude scaffolds for you (<code class="term">mh-&lt;domain&gt;-brain</code>) is git-initialized locally with no remote. When you're ready to share with the team, push it to internal Git. Other PMs can then clone it and run its <code class="term">install.sh</code> to consult your brain alongside their own.</p>
+    <div class="col">
+      <h3><span class="badge">Flow B</span> How you share <em>your</em> brain</h3>
+      <p>When your brain is in good shape and you want teammates to consult it, you do the same thing Roi did — push your <code class="term">mh-&lt;domain&gt;-brain</code> repo to internal Git. Other PMs then install it the same way they installed <code class="term">/New-Brain</code>.</p>
+      <pre class="shell"><span class="comment"># You (when ready to share):</span>
+<span class="prompt">$</span> <span class="cmd">cd ~/Claude/mh-&lt;your-domain&gt;-brain</span>
+<span class="prompt">$</span> <span class="cmd">git remote add origin \
+    &lt;internal-git&gt;/mh-&lt;your-domain&gt;-brain.git</span>
+<span class="prompt">$</span> <span class="cmd">git push -u origin main</span>
+
+<span class="comment"># Other PMs (when they want to consult):</span>
+<span class="prompt">$</span> <span class="cmd">git clone &lt;internal-git&gt;/mh-&lt;your-domain&gt;-brain.git \
+    ~/Claude/mh-&lt;your-domain&gt;-brain</span>
+<span class="prompt">$</span> <span class="cmd">cd ~/Claude/mh-&lt;your-domain&gt;-brain && ./install.sh</span></pre>
     </div>
   </div>
 
-  <h3 style="margin-top: 32px;">Pushing your brain when you're ready</h3>
-  <pre class="shell"><span class="prompt">$</span> <span class="cmd">cd ~/Claude/mh-&lt;your-domain&gt;-brain</span>
-<span class="prompt">$</span> <span class="cmd">git remote add origin git@&lt;internal-git&gt;:mh-&lt;your-domain&gt;-brain.git</span>
-<span class="prompt">$</span> <span class="cmd">git push -u origin main</span></pre>
+  <h3 style="margin-top: 32px;">What other PMs get when they install your brain</h3>
+  <ul class="bullet">
+    <li><strong>Your full knowledge base</strong> — <code class="term">brain.md</code>, <code class="term">_meta.md</code>, references, interview log. Exactly what you captured.</li>
+    <li><strong>A live <code class="term">/&lt;Your-Domain&gt;-Brain</code> command in their Claude Code</strong> — same six commands you use.</li>
+    <li><strong>Read access to consult, query, and audit.</strong> Their local edits stay local; your canonical version on internal Git isn't affected unless they push back via pull request.</li>
+  </ul>
 
   <div class="callout">
-    <strong>v2 vision.</strong> Once 2–3 domain brains exist as shared repos, we build a small catalog so any PM can browse "what brains are available" and one-click install the ones relevant to their work. The metadata in <code class="term">_meta.md</code> already supports it. We're not building the catalog yet — but every brain shipped today is forward-compatible.
+    <strong>v2 vision.</strong> Once 2–3 domain brains are shared, we build a small catalog so any PM can browse "what brains are available" and one-click install the ones relevant to their work. The metadata in <code class="term">_meta.md</code> already supports it. Not built yet — but every brain shipped today is forward-compatible.
   </div>
 </section>
 
