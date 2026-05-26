@@ -39,7 +39,8 @@ mh-new-brain/
 │   ├── test-scaffold.sh
 │   └── test-install.sh
 ├── .github/workflows/
-│   └── ci.yml               ← shellcheck + template structure checks (push/PR to main)
+│   ├── ci.yml               ← shellcheck + template structure checks (push/PR to main)
+│   └── notify-slack.yml     ← posts to #product-brains on release commits (inert until SLACK_WEBHOOK_URL is set)
 └── docs/
     └── design-spec.md       ← the New-Brain design spec
 ```
@@ -127,6 +128,10 @@ This one command does the full release flow:
 Add `--dry-run` to do everything **except** the push (commit lands locally; you decide whether to push).
 
 Consumers pick up the change with `./update.sh`.
+
+### Slack notifications
+
+`.github/workflows/notify-slack.yml` watches pushes to `main` and posts to **#product-brains** when the head commit looks like a release (message starts with `Release `). It's inert until the `SLACK_WEBHOOK_URL` repository secret is configured — until then it logs a notice in the Action run and exits cleanly. To set it up: create an Incoming Webhook for #product-brains in Slack, then add the URL as a secret named `SLACK_WEBHOOK_URL` under the repo's **Settings → Secrets and variables → Actions**.
 
 ### Just resyncing templates (no release)
 

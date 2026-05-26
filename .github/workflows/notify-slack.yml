@@ -1,0 +1,94 @@
+name: Notify Slack on release
+
+# Fires on every push to main, but only POSTS to Slack when:
+#  (a) the SLACK_WEBHOOK_URL secret is configured, AND
+#  (b) the head commit looks like a release (message starts with "Release ").
+# Both conditions short-circuit cleanly with a notice in the job log.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # we only need HEAD and its parent for the message
+
+      - name: Build Slack payload (skips silently if conditions aren't met)
+        id: payload
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
+            echo "::notice::SLACK_WEBHOOK_URL not set — skipping Slack notification."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          TITLE="$(git log -1 --pretty=%s)"
+          if [[ ! "$TITLE" =~ ^Release\  ]]; then
+            echo "::notice::Head commit is not a release ('$TITLE') — skipping Slack notification."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          VERSION="$(tr -d '[:space:]' < VERSION 2>/dev/null || echo 'unknown')"
+          AUTHOR="$(git log -1 --pretty=%an)"
+          FULL_SHA="$(git rev-parse HEAD)"
+          SHORT_SHA="$(git rev-parse --short HEAD)"
+          COMMIT_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${FULL_SHA}"
+
+          # Drop the "Release X.Y.Z: " prefix so the body is just the change description.
+          SUMMARY="$(echo "$TITLE" | sed -E 's/^Release [0-9.]+:[[:space:]]*//')"
+
+          jq -n \
+            --arg version "v${VERSION}" \
+            --arg summary "$SUMMARY" \
+            --arg author "$AUTHOR" \
+            --arg short_sha "$SHORT_SHA" \
+            --arg url "$COMMIT_URL" \
+            '{
+              blocks: [
+                {
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: ("*New /New-Brain release: " + $version + "*\n" + $summary)
+                  }
+                },
+                {
+                  type: "context",
+                  elements: [{
+                    type: "mrkdwn",
+                    text: ("by *" + $author + "* · <" + $url + "|view commit " + $short_sha + "> · pull with `./update.sh` in `mh-new-brain`")
+                  }]
+                }
+              ]
+            }' > payload.json
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "Composed Slack payload for $version"
+
+      - name: Post to Slack
+        if: steps.payload.outputs.skip != 'true'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          response="$(curl -sS -X POST -H 'Content-Type: application/json' \
+            --data @payload.json \
+            "$SLACK_WEBHOOK_URL")"
+          if [[ "$response" != "ok" ]]; then
+            echo "::error::Slack rejected the payload: $response"
+            exit 1
+          fi
+          echo "Posted to Slack."
