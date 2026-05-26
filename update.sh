@@ -18,6 +18,9 @@ git pull --rebase --autostash
 echo "→ Reinstalling /New-Brain skill..."
 ./install.sh
 
+echo "→ Propagating engine to installed brain skills..."
+./scripts/propagate.sh || echo "  (propagate reported issues — see above; /New-Brain itself is up to date)"
+
 new_version="(unknown)"
 [[ -f VERSION ]] && new_version="$(tr -d '[:space:]' < VERSION)"
 

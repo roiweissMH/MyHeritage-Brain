@@ -19,6 +19,7 @@ mh-new-brain/
 │   ├── scaffold.sh          ← writes a new mh-<domain>-brain/ repo from templates + PM answers
 │   ├── release.sh           ← maintainer-only: sync + test + bump + commit + push
 │   ├── install-hooks.sh     ← wires repo-tracked hooks into .git/hooks/
+│   ├── propagate.sh         ← updates every deployed <Domain>-Brain skill from the current template
 │   └── hooks/
 │       └── pre-commit       ← blocks commits when templates/ has drifted
 ├── templates/               ← canonical files copied into each new brain
@@ -82,7 +83,13 @@ cd ~/Claude/mh-new-brain
 ./update.sh
 ```
 
-The script fetches the latest from `origin/main`, reinstalls the skill into `~/.claude/skills/New-Brain/`, and prints the new version + recent CHANGELOG entries. Restart Claude Code afterwards so it picks up the new `SKILL.md`.
+`update.sh` does three things in order:
+
+1. **Pulls** the latest from `origin/main`.
+2. **Reinstalls** `/New-Brain` into `~/.claude/skills/New-Brain/`.
+3. **Propagates** the engine to every domain brain you already have installed — `~/.claude/skills/<Domain>-Brain/SKILL.md` is regenerated from the current template (with your domain spliced in). The previous version is preserved as `SKILL.md.bak.YYYYMMDD-HHMMSS`. Brain content (interviews, references) lives elsewhere and is never touched.
+
+It then prints the new version + recent CHANGELOG entries. Restart Claude Code afterwards so it picks up SKILL changes.
 
 ## Running the tests
 
@@ -131,6 +138,19 @@ git diff templates/
 ```
 
 `sync-templates.sh` reads from `$BILLING_DIR` (default: `~/Claude/mh-billing-brain`). The pre-commit hook will refuse a commit if `templates/` drifts from that source.
+
+### Propagating engine changes to existing brains (manually)
+
+`update.sh` propagates automatically. If you want to run propagation by itself (e.g., on the maintainer's machine after a sync without a full release):
+
+```bash
+./scripts/propagate.sh             # update every installed <Domain>-Brain
+./scripts/propagate.sh --dry-run   # preview only; write nothing
+```
+
+The script walks `~/.claude/skills/*-Brain/` (skipping `New-Brain`), regenerates each skill's `SKILL.md` from `templates/SKILL.md.tmpl` with the brain's domain spliced in, and backs up the previous version as `SKILL.md.bak.YYYYMMDD-HHMMSS`. It does **not** touch brain content (interviews, references) under `~/Claude/brains/<domain>/`.
+
+If a PM has hand-edited their deployed `SKILL.md`, propagation will overwrite it — the backup is the only recovery path. (We may add an opt-out marker convention in a later version.)
 
 ## Design
 
