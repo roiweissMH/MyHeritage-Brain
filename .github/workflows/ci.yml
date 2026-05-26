@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-structure:
+    runs-on: ubuntu-latest
+    name: Shell lint + template structure
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ShellCheck on repo scripts
+        run: |
+          shellcheck \
+            scripts/scaffold.sh \
+            scripts/sync-templates.sh \
+            scripts/install-hooks.sh \
+            scripts/hooks/pre-commit \
+            tests/lib.sh \
+            tests/run-all.sh \
+            tests/test-install.sh \
+            tests/test-scaffold.sh \
+            tests/test-sync-templates.sh
+
+      - name: Required placeholders are present in templates/
+        run: |
+          set -e
+          missing=0
+          for placeholder in '<DOMAIN>' '<domain-slug>' '<Skill-Name>' '<skill-cmd>'; do
+            if ! grep -rqF -- "$placeholder" templates/; then
+              echo "::error::missing placeholder $placeholder in templates/"
+              missing=1
+            fi
+          done
+          if [[ $missing -ne 0 ]]; then exit 1; fi
+          echo "All required placeholders present."
+
+      - name: SKILL template carries the MyHeritage common-context layer
+        run: |
+          set -e
+          file=templates/SKILL.md.tmpl
+          for needle in \
+            'MyHeritage common-context layer' \
+            'Help Center' \
+            'Knowledge Base / Education' \
+            'Welcome / Onboarding'; do
+            if ! grep -qF -- "$needle" "$file"; then
+              echo "::error::SKILL.md.tmpl is missing: $needle"
+              exit 1
+            fi
+          done
+          echo "Common-context layer is present in $file."
+
+      - name: Brain templates have required scaffolding markers
+        run: |
+          set -e
+          grep -q '<!-- TOPIC_TABLE -->' templates/brain/_meta.md.tmpl
+          grep -q '<!-- REFERENCE_STUB_BACKLOG -->' templates/brain/_meta.md.tmpl
+          grep -q '<!-- Topics begin below this line -->' templates/brain/brain.md.tmpl
+          echo "Scaffolding markers present."
+
+  # Full sync-check would require mh-billing-brain on the runner. That repo
+  # contains internal MH content and isn't on GitHub, so the pre-commit hook
+  # (which runs on the maintainer's machine, where billing-brain IS available)
+  # is the authoritative drift guard. CI here covers structural correctness.
