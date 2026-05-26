@@ -17,14 +17,14 @@ This skill bootstraps a new domain brain through a guided conversation. The outp
 1. **Phase 0 — Pre-flight checks** (silent, before asking anything). Run the checks in the "Phase 0" section below. If any blocker is found, surface it and stop until resolved.
 2. Run **Phase 1 → Phase 5** in order. Each phase has explicit exit conditions; do not advance until the previous phase is fully captured.
 3. Write the bootstrap conversation to the in-progress `interview-log.md` file as it happens (not at the end).
-4. After Phase 4 (scaffolding) succeeds, write the completion marker `## Bootstrap complete — <date>` to the new brain's `interview-log.md`.
+4. After Phase 4 (scaffolding) succeeds, write the completion marker `## Bootstrap complete — <date>` to the new brain's `interview-log.md` (Phase 4 step 7).
 
 ## Hard rules
 
 1. **Never silently overwrite.** If a new brain's paths already exist, surface the conflict and offer (a) pick a different name, (b) cancel, (c) overwrite with backup. Default is cancel.
 2. **Substitution is deterministic, not creative.** All placeholder values come from PM answers in Phase 1-3 and are passed verbatim to `scripts/scaffold.sh`. Do not paraphrase or "improve" the PM's wording when filling templates.
 3. **Bootstrap conversation is preserved verbatim.** Every Q/A in Phases 1-3 is written into the new brain's `interview-log.md` exactly as the PM said it. This makes the bootstrap auditable.
-4. **No git remote.** `scaffold.sh` does `git init` + initial commit only. Do NOT add a remote or push, even if the PM asks — explain this is deliberate (sharing is a v2 decision; see `docs/design-spec.md` §10).
+4. **Private GitHub repo by default.** `scaffold.sh` does `git init` + initial commit. Phase 4 then **pushes to a private GitHub repo** (`MyHeritage-<DOMAIN>-Brain` under the PM's account) unless the PM declines. The repo is **private** because brain content typically contains internal MyHeritage data. Never push to a public repo.
 5. **Sandbox writes outside `~/Claude/`.** Writing to `~/.claude/skills/` is outside the default sandbox allowlist. The new brain's `install.sh` will be run as the last scaffold step; if a sandbox error occurs, tell the PM to run `cd ~/Claude/mh-<domain>-brain && ./install.sh` in their terminal manually.
 
 ## Phase 0 — Pre-flight checks
@@ -91,7 +91,7 @@ Ask, one question at a time. After each answer, confirm it back briefly before m
 
 1. **Stakeholders.** "Who are the key people I should know about for this domain? Names + roles, briefly."
    - Capture as a freeform list. Save to `/tmp/new-brain-stakeholders-<SLUG>.md` (the scaffolder will pick this up if substantive).
-   - If 3+ named stakeholders are given, treat this as a substantive `Band & Team` topic — flag it for inclusion in `brain.md` as an `interviewed` topic (Phase 4 step 7 below).
+   - If 3+ named stakeholders are given, treat this as a substantive `Band & Team` topic — flag it for inclusion in `brain.md` as an `interviewed` topic (Phase 4 step 6 below).
    - If empty/vague (e.g. "just me"), skip the topic — no `Band & Team` block, list stays in the interview log only.
 
 2. **Anchor docs.** "What are the 1-3 documents you'd hand a new hire as 'read these first'? Confluence URLs, PRDs, dashboards, contracts — whatever's gospel. Title + URL per line. Leave URL blank if it's just a known doc name."
@@ -179,7 +179,32 @@ Steps:
 
    If install fails for a permission reason: tell the PM to run `cd ~/Claude/mh-<SLUG>-brain && ./install.sh` manually in their terminal, then return here.
 
-5. **If Phase 2 produced a substantive stakeholder list**, append a `Band & Team` topic block to the new brain's `brain.md`, status `interviewed`, with the stakeholder list as Facts. Use the Edit tool. Format:
+5. **Push the new brain to a private GitHub repo.** This is the recommended practice for every brain — off-machine backup, collaboration, and recovery story. Tell the PM:
+
+   > "I'll push your brain to a **private** GitHub repo so it has off-machine backup and history. Default name: `MyHeritage-<DOMAIN>-Brain` under your GitHub account. OK to proceed, or want to skip?"
+
+   If the PM agrees:
+   - Confirm `gh auth status` returns OK. If not, tell the PM to run `gh auth login` and resume Phase 4 from this step.
+   - Detect the GitHub owner: `gh api user --jq .login` (typically the PM's own account).
+   - Create the private repo + remote + push in one shot:
+
+     ```bash
+     cd ~/Claude/mh-<SLUG>-brain && gh repo create <owner>/MyHeritage-<DOMAIN>-Brain \
+       --private \
+       --source . \
+       --remote origin \
+       --push \
+       --description "<DESCRIPTION>"
+     ```
+
+   - Verify with `git -C ~/Claude/mh-<SLUG>-brain branch -vv` that `main` tracks `origin/main`.
+   - Report the URL: `https://github.com/<owner>/MyHeritage-<DOMAIN>-Brain`.
+
+   **Why private:** brain content typically includes internal MyHeritage data (revenue numbers, employee names, strategic decisions, etc.). Never push public. If `--private` fails because the org/user enforces only-public repos, abort and surface the error — do not fall through to a public push.
+
+   If the PM declines, note it in the bootstrap log (`Skipped GitHub push at PM's request on <date>`) and continue. The PM can push later with: `cd ~/Claude/mh-<SLUG>-brain && gh repo create <owner>/MyHeritage-<DOMAIN>-Brain --private --source . --remote origin --push`.
+
+6. **If Phase 2 produced a substantive stakeholder list**, append a `Band & Team` topic block to the new brain's `brain.md`, status `interviewed`, with the stakeholder list as Facts. Use the Edit tool. Format:
 
    ```markdown
    ## Band & Team
@@ -212,17 +237,17 @@ Steps:
 
    Then update `_meta.md`'s topic table row for `Band & Team` (if it exists) to `interviewed` status. If `Band & Team` isn't in the topic list, append it.
 
-6. **Write the completion marker.** Append to the new brain's `interview-log.md`:
+7. **Write the completion marker.** Append to the new brain's `interview-log.md`:
 
    ```markdown
    
    ## Bootstrap complete — <bootstrap-date>
    ```
 
-7. **Confirm.** Print:
+8. **Confirm.** Print:
 
    > "✅ `<DOMAIN>` brain bootstrapped.
-   > Repo: `~/Claude/mh-<SLUG>-brain/` (1 commit, no remote)
+   > Repo: `~/Claude/mh-<SLUG>-brain/` — pushed to `https://github.com/<owner>/MyHeritage-<DOMAIN>-Brain` (private) [or 'no remote (push skipped)' if PM declined]
    > Skill: `/<SKILL_NAME>` (live; restart Claude Code if it doesn't show up)
    > Brain: `~/Claude/brains/<SLUG>/`
    > Topics seeded: N empty, M interviewed (Band & Team if applicable).
@@ -237,7 +262,7 @@ Ask: "Want to do your first topic interview now? Recommended topic: `<topic>` �
 
 ## Resumability
 
-The bootstrap conversation is written to `/tmp/new-brain-bootstrap-log-<SLUG>.md` *as it happens*, not at the end. If the session dies before Phase 4 step 6 (completion marker), the next `/New-Brain` invocation's Phase 0 detects the unfinished state and offers to resume.
+The bootstrap conversation is written to `/tmp/new-brain-bootstrap-log-<SLUG>.md` *as it happens*, not at the end. If the session dies before Phase 4 step 7 (completion marker), the next `/New-Brain` invocation's Phase 0 detects the unfinished state and offers to resume.
 
 When resuming:
 1. Identify which phase was last completed (look for the last `### Phase N:` marker in the log).
