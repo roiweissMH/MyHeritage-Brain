@@ -10,10 +10,17 @@ This is the bootstrapper for the broader **MH Product Brain** initiative. Use it
 mh-new-brain/
 ├── README.md                ← this file
 ├── SKILL.md                 ← /New-Brain skill definition (5-phase guided bootstrap)
+├── VERSION                  ← current release version (semver)
+├── CHANGELOG.md             ← release history (maintained by scripts/release.sh)
 ├── install.sh               ← deploys SKILL.md to ~/.claude/skills/New-Brain/
+├── update.sh                ← user-facing: git pull + reinstall in one command
 ├── scripts/
-│   ├── sync-templates.sh    ← regenerates templates/ from mh-billing-brain (maintainer-run)
-│   └── scaffold.sh          ← writes a new mh-<domain>-brain/ repo from templates + PM answers
+│   ├── sync-templates.sh    ← regenerates templates/ from mh-billing-brain (supports --check)
+│   ├── scaffold.sh          ← writes a new mh-<domain>-brain/ repo from templates + PM answers
+│   ├── release.sh           ← maintainer-only: sync + test + bump + commit + push
+│   ├── install-hooks.sh     ← wires repo-tracked hooks into .git/hooks/
+│   └── hooks/
+│       └── pre-commit       ← blocks commits when templates/ has drifted
 ├── templates/               ← canonical files copied into each new brain
 │   ├── SKILL.md.tmpl
 │   ├── install.sh.tmpl
@@ -30,6 +37,8 @@ mh-new-brain/
 │   ├── test-sync-templates.sh
 │   ├── test-scaffold.sh
 │   └── test-install.sh
+├── .github/workflows/
+│   └── ci.yml               ← shellcheck + template structure checks (push/PR to main)
 └── docs/
     └── design-spec.md       ← the New-Brain design spec
 ```
@@ -64,13 +73,16 @@ Then restart Claude Code so it discovers `/New-Brain`. The first time you run it
 
 By default, `install.sh` **copies** files (safe — your clone can move or be deleted without breaking the install). Use `./install.sh --symlink` if you want edits to the deployed file to flow back into your clone.
 
-## Update
+## Update (for users)
+
+To pull the latest `/New-Brain` and reinstall in one shot:
 
 ```bash
-cd mh-new-brain
-git pull
-./install.sh
+cd ~/Claude/mh-new-brain
+./update.sh
 ```
+
+The script fetches the latest from `origin/main`, reinstalls the skill into `~/.claude/skills/New-Brain/`, and prints the new version + recent CHANGELOG entries. Restart Claude Code afterwards so it picks up the new `SKILL.md`.
 
 ## Running the tests
 
@@ -80,18 +92,45 @@ bash tests/run-all.sh
 
 Every test file lives in `tests/`. Shell-based, no external framework. They exercise `sync-templates.sh`, `scaffold.sh`, and `install.sh` against temporary workspaces.
 
-## Updating templates after a Billing-Brain change
+## Maintainer workflow
 
-`/New-Brain` produces brains in the same shape as the canonical `mh-billing-brain` repo. If `mh-billing-brain/SKILL.md` (or any other reference file) changes, regenerate the templates:
+### One-time setup after cloning
 
 ```bash
-bash scripts/sync-templates.sh
-git diff templates/
-# Review the diff; if it's correct, commit it.
-git add templates/ && git commit -m "Sync templates with mh-billing-brain"
+./scripts/install-hooks.sh
 ```
 
-`sync-templates.sh` reads from `$BILLING_DIR` (default: `~/Claude/mh-billing-brain`). Override with the env var if the canonical repo lives elsewhere.
+This symlinks `scripts/hooks/pre-commit` into `.git/hooks/`. From then on, every commit runs `sync-templates.sh --check` to make sure `templates/` is consistent with the canonical Billing-Brain SKILL. The hook is a no-op on machines that don't have `~/Claude/mh-billing-brain/`.
+
+### Cutting a release
+
+```bash
+./scripts/release.sh "Short description of the change"
+```
+
+This one command does the full release flow:
+
+1. Runs `sync-templates.sh` to regenerate `templates/` from `~/Claude/mh-billing-brain/`.
+2. Runs the test suite. Aborts (and reverts) if anything fails.
+3. Bumps the patch version in `VERSION`. Use `--minor` or `--major` to bump differently.
+4. Prepends a dated entry to `CHANGELOG.md`.
+5. Commits `templates/`, `VERSION`, and `CHANGELOG.md` in a single commit.
+6. Pushes to `origin/main`.
+
+Add `--dry-run` to do everything **except** the push (commit lands locally; you decide whether to push).
+
+Consumers pick up the change with `./update.sh`.
+
+### Just resyncing templates (no release)
+
+If you only want to regenerate the templates without cutting a release:
+
+```bash
+./scripts/sync-templates.sh
+git diff templates/
+```
+
+`sync-templates.sh` reads from `$BILLING_DIR` (default: `~/Claude/mh-billing-brain`). The pre-commit hook will refuse a commit if `templates/` drifts from that source.
 
 ## Design
 
