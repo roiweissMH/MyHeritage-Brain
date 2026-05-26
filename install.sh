@@ -38,7 +38,8 @@ mkdir -p "$SKILL_DST_DIR"
 backup_if_exists() {
   local path="$1"
   if [[ -e "$path" || -L "$path" ]]; then
-    local backup="${path}.bak.$(date +%Y%m%d-%H%M%S)"
+    local backup
+    backup="${path}.bak.$(date +%Y%m%d-%H%M%S)"
     echo "  Backing up existing $path → $backup"
     mv "$path" "$backup"
   fi

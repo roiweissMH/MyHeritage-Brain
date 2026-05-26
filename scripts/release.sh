@@ -16,15 +16,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_DIR"
 
-BUMP=patch
+BUMP="patch"
 DRY_RUN=0
 MESSAGE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --major)   BUMP=major;   shift;;
-    --minor)   BUMP=minor;   shift;;
-    --patch)   BUMP=patch;   shift;;
+    --major)   BUMP="major";   shift;;
+    --minor)   BUMP="minor";   shift;;
+    --patch)   BUMP="patch";   shift;;
     --dry-run) DRY_RUN=1;    shift;;
     -h|--help)
       sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
