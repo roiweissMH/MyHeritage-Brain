@@ -4,6 +4,10 @@ All notable changes to `/New-Brain` (the scaffolder + skill engine for MyHeritag
 
 <!-- release.sh inserts new entries below this line -->
 
+## 0.3.0 — 2026-05-26
+
+- Bake 'private GitHub repo per brain' into /New-Brain Phase 4 as the new default
+
 ## 0.2.0 — 2026-05-26
 
 - Add Layer 4 codebase knowledge source (per-brain GitHub repo) + topic-level code anchors
