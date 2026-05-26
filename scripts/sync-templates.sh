@@ -107,6 +107,19 @@ The `<skill-cmd>` skill reads this file first on every invocation. Edit only via
 **References folder:** `references/`
 **Last reviewed:** <BOOTSTRAP_DATE>
 
+<!--
+Optional: enable the Layer 4 codebase knowledge source. Uncomment and fill in
+to let the brain query a GitHub repo as a live source of truth for current-
+behavior facts (product IDs, prices, configs, flags, etc.). See "Domain
+codebase layer" in SKILL.md.
+
+**Codebase:**
+- primary_repo: <owner>/<repo>
+- paths_of_interest:
+  - <path/within/repo>
+- access: requires `gh auth login` with read access to <owner>/<repo>.
+-->
+
 ---
 
 ## Topic Index

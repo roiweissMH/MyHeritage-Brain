@@ -28,9 +28,39 @@ Rules of use:
 - During interviews, use these sources only to ask sharper follow-up questions (recognize product names, refine probes). Never paraphrase MH marketing copy as if it were the PM's voice.
 - Some `.com` URLs geo-redirect to `.co.il` (Hebrew nav-only) depending on fetch origin. If that happens, fall back to interview-only grounding and note it.
 
+## Domain codebase layer (Layer 4 — optional, per-brain)
+
+If the brain's `_meta.md` has a `**Codebase:**` block, the brain has access to a *live source code* knowledge layer in addition to interviews, references, and the common-context layer. Use it for questions about **current behavior** — product IDs, prices, feature flags, configs, ID mappings, business-rule numbers — where the code is the source of truth.
+
+### When to consult the codebase
+
+- The question is about a specific identifier (product ID, plan ID, flag name, table column, etc.).
+- The question asks about *current* runtime behavior (a price, a count, a duration, a boolean), not history or rationale.
+- The brain's topics don't have a confident answer, OR the brain wants to verify a topic-level fact against current code.
+
+### How to query
+
+The brain uses the GitHub CLI (`gh`) to search the configured repo:
+
+```
+gh search code "<query>" --owner <owner> --repo <repo> --limit 20
+```
+
+Read `_meta.md`'s `Codebase:` block to get `primary_repo` (used for `--owner`/`--repo`). If `paths_of_interest` is set, add `path:<dir>` qualifiers inside the query to narrow results (e.g., `gh search code "product_id 704 path:src/<DOMAIN>" --owner ...`). For multi-line context, follow up with `gh api repos/<owner>/<repo>/contents/<path>` to read the file.
+
+If a topic in `brain.md` has a `### Code anchors` block listing specific source files for this topic, consult those files first via `gh api` — they're hand-curated by the topic owner as the most relevant code locations for that topic's questions.
+
+### Rules of use
+
+- **Cite `path:line`.** Every fact retrieved from code must include the file path and line number from the actual `gh search code` result. If the line number isn't in the search excerpt, fetch the file via `gh api` and find the line. **Never recall a path or line from training data.**
+- **Code wins for current-state questions.** If a brain topic says "product 704 = 30-day trial" and the code at `path:line` says 14 days, the answer is 14 days (cited from code). Then append an Open Question to the affected topic: `[L4 DISCREPANCY YYYY-MM-DD] Topic says X, code at path:line says Y`. The topic owner should refresh.
+- **Code does NOT win for history or rationale.** "Why is product 704's trial 14 days?" is an interview question; the code only tells you the current value, not the reason.
+- **If `gh` isn't authenticated or the repo is unreachable, say so explicitly.** Fall back to brain content with the warning `⚠ Codebase layer unavailable this session — answer is interview-only.`
+- **No `Codebase:` block in `_meta.md` means no L4.** The brain operates with three layers only.
+
 ## Hard rules (apply to every command)
 
-1. **No hallucination.** If a fact isn't in `brain.md`, a linked reference under `references/`, or the MH common-context sources listed above (and actually fetched this session), say "I don't know" and offer to interview. Never fill in from general <DOMAIN> knowledge.
+1. **No hallucination.** If a fact isn't in `brain.md`, a linked reference under `references/`, the MH common-context sources, or the codebase (Layer 4, when configured) — and actually fetched this session — say "I don't know" and offer to interview. Never fill in from general <DOMAIN> knowledge.
 2. **Always cite.** Every factual claim cites: topic name, section (Narrative / Facts / History / References), and any references used.
 3. **Always tag status.** Tag each cited fact with the topic's status: `interviewed`, `verified`, or `empty`.
 4. **Reference-thin warning.** If an answer rests on narrative only (no references attached to the cited topic(s)), end the answer with: `⚠ No reference docs attached to this topic — answer is interview-only.`
@@ -45,7 +75,8 @@ Rules of use:
 1. Read `_meta.md` (already done in "On every invocation").
 2. Identify which topics in `_meta.md` are relevant to the question. If none clearly match, say so and offer to interview a new topic.
 3. Load only the relevant H2 sections from `brain.md`. Read referenced files in `references/` that the relevant topics link to.
-4. Produce an answer grounded only in what you read. Follow the hard rules above.
+4. If `_meta.md` has a `**Codebase:**` block AND the question implies a current-behavior code fact (specific IDs, prices, durations, flag names, configs, etc.), also consult **Layer 4** per the rules in the "Domain codebase layer" section above — checking topic-level `### Code anchors` first, then `gh search code` as a fallback.
+5. Produce an answer grounded only in what you read. Follow the hard rules above. If facts came from multiple layers, present them with their layer label: `(Topic: ..., status: ...)` vs `(Code: path:line)`.
 
 **Output format:**
 
@@ -109,18 +140,21 @@ For the chosen topic, work through these prompt patterns, one at a time, capturi
 **Behavior:**
 1. Load the topic's H2 block from `brain.md`.
 2. Load every file linked in the topic's References section. Skip stub files (status: missing) and note them.
-3. For each fact in the Facts section and each item in History & decisions, check whether it is consistent with the references. List:
+3. If `_meta.md` has a `**Codebase:**` block, also load the topic's `### Code anchors` (if any) and any code locations relevant to the facts being checked. Use `gh api repos/<owner>/<repo>/contents/<path>` to read files.
+4. For each fact in the Facts section and each item in History & decisions, check whether it is consistent with the references AND, where applicable, with the codebase. List:
    - Aligned facts (referenced and consistent).
    - Unbacked facts (no reference covers them — not a discrepancy, just a gap).
-   - Discrepancies (a fact in the brain conflicts with a reference).
-4. If discrepancies exist:
-   - Append each as a bullet in the topic's Open questions section: `- [VERIFY DISCREPANCY YYYY-MM-DD] <fact in brain> vs <fact in reference at references/<filename>.md>`.
+   - Discrepancies vs. references: a fact in the brain conflicts with a reference.
+   - Discrepancies vs. code (Layer 4): a fact in the brain conflicts with current code.
+5. If discrepancies exist:
+   - Reference discrepancies → append: `- [VERIFY DISCREPANCY YYYY-MM-DD] <fact in brain> vs <fact in reference at references/<filename>.md>`.
+   - Code discrepancies → append: `- [L4 DISCREPANCY YYYY-MM-DD] <fact in brain> vs code at <path:line>`.
    - Leave status as `interviewed`.
-5. If no discrepancies:
+6. If no discrepancies:
    - Set `status: verified` in the topic's HTML comments.
    - Update `_meta.md` row to status `verified`.
-6. Update `last-updated: <today>` either way.
-7. Output the verification report: aligned count, unbacked count, discrepancies (with details), new status.
+7. Update `last-updated: <today>` either way.
+8. Output the verification report: aligned count, unbacked count, reference discrepancies, code discrepancies (with details), new status.
 
 ## Command: status
 
