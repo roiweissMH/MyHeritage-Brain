@@ -9,3 +9,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Working decks (kept locally, not tracked in main)
+docs/*.html
