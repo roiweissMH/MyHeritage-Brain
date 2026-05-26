@@ -14,10 +14,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: ShellCheck on repo scripts
+        # -S warning suppresses info/style findings (SC2016, SC1091, etc.).
+        # The intent is to catch real warnings and errors; pure style is opt-in
+        # for the maintainer, not a CI gate.
         run: |
-          shellcheck \
+          shellcheck -S warning \
+            install.sh \
+            update.sh \
             scripts/scaffold.sh \
             scripts/sync-templates.sh \
+            scripts/release.sh \
+            scripts/propagate.sh \
             scripts/install-hooks.sh \
             scripts/hooks/pre-commit \
             tests/lib.sh \

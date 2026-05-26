@@ -113,7 +113,7 @@ assert_contains "$inst" "brains/backoffice" "install.sh should reference brains/
 assert_not_contains "$inst" "<domain-slug>" "install.sh should not contain unresolved placeholder"
 
 # --- git repo initialized with initial commit ---
-cd "$NEW_REPO"
+cd "$NEW_REPO" || exit 1
 assert_file_exists "$NEW_REPO/.git/HEAD" ".git directory should exist"
 COMMIT_COUNT="$(git rev-list --count HEAD 2>/dev/null || echo 0)"
 assert_eq "$COMMIT_COUNT" "1" "should have exactly one initial commit"
@@ -123,7 +123,7 @@ REMOTES="$(git remote)"
 assert_eq "$REMOTES" "" "no remotes should be configured"
 
 # --- second invocation against existing repo fails safely ---
-cd "$WORK"
+cd "$WORK" || exit 1
 if bash "$REPO_DIR/scripts/scaffold.sh" \
   --root "$WORK" \
   --domain "Backoffice" \
