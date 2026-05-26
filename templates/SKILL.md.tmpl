@@ -13,9 +13,24 @@ This skill is the interface to the <DOMAIN> domain brain at `~/Claude/brains/<do
 2. Parse the user's input to determine the command. Default is **query**. Explicit prefixes: `interview`, `verify`, `status`, `capture`, `refresh`.
 3. Run only the matching command's behavior below.
 
+## MyHeritage common-context layer (inherited by every brain)
+
+Every domain brain operates within MyHeritage's broader product context. The following are MyHeritage's canonical company-wide knowledge sources — consult them as **background** when interviewing PMs, framing questions, or interpreting answers (e.g., to recognize plan names, product terminology, customer-facing positioning):
+
+- **Welcome / Onboarding:** https://myheritage.activetrail.biz/Welcome_to_MyHeritage
+- **Help Center:** https://www.myheritage.com/help/en/
+- **Knowledge Base / Education:** https://education.myheritage.com/
+
+Rules of use:
+- These are background context, **not domain references.** Do not add them to `_meta.md` or to any topic's References section.
+- The brain is authoritative for the <DOMAIN> domain. If a brain fact conflicts with these sources, the brain wins — but flag the discrepancy as an open question on the affected topic.
+- Cite explicitly when you draw on them in an answer, with the prefix `(MH common context: <URL>)`. The "no hallucination" rule still applies — if you didn't actually fetch and read it this session, don't claim it.
+- During interviews, use these sources only to ask sharper follow-up questions (recognize product names, refine probes). Never paraphrase MH marketing copy as if it were the PM's voice.
+- Some `.com` URLs geo-redirect to `.co.il` (Hebrew nav-only) depending on fetch origin. If that happens, fall back to interview-only grounding and note it.
+
 ## Hard rules (apply to every command)
 
-1. **No hallucination.** If a fact isn't in `brain.md` or a linked reference under `references/`, say "I don't know" and offer to interview. Never fill in from general <DOMAIN> knowledge.
+1. **No hallucination.** If a fact isn't in `brain.md`, a linked reference under `references/`, or the MH common-context sources listed above (and actually fetched this session), say "I don't know" and offer to interview. Never fill in from general <DOMAIN> knowledge.
 2. **Always cite.** Every factual claim cites: topic name, section (Narrative / Facts / History / References), and any references used.
 3. **Always tag status.** Tag each cited fact with the topic's status: `interviewed`, `verified`, or `empty`.
 4. **Reference-thin warning.** If an answer rests on narrative only (no references attached to the cited topic(s)), end the answer with: `⚠ No reference docs attached to this topic — answer is interview-only.`
