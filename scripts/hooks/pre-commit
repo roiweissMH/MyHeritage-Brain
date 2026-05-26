@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# pre-commit hook — keeps templates/ in sync with mh-billing-brain.
+#
+# Activated by ./scripts/install-hooks.sh (one-time, per clone).
+#
+# Behavior:
+# - If $HOME/Claude/mh-billing-brain is present, runs `scripts/sync-templates.sh
+#   --check` and blocks the commit when templates/ has drifted from the live
+#   Billing-Brain SKILL. The fix is `./scripts/sync-templates.sh && git add
+#   templates/`.
+# - If billing-brain isn't on this machine (e.g. another contributor), the hook
+#   is a no-op so it doesn't block commits unrelated to template sync.
+# - Emergency bypass: `git commit --no-verify`. Use sparingly.
+
+set -e
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+cd "$REPO_DIR"
+
+BILLING_DIR="${BILLING_DIR:-$HOME/Claude/mh-billing-brain}"
+
+if [[ ! -d "$BILLING_DIR" ]]; then
+  # No live reference available — silently skip. CI will still run
+  # structural checks on the committed templates.
+  exit 0
+fi
+
+if ! ./scripts/sync-templates.sh --check >/dev/null 2>&1; then
+  cat >&2 <<EOF
+
+✗ pre-commit: templates/ is out of sync with mh-billing-brain.
+
+The canonical SKILL lives in $BILLING_DIR. The committed templates/
+should always reflect that. To fix:
+
+    ./scripts/sync-templates.sh
+    git add templates/
+    git commit ...
+
+To see what diverged:
+
+    ./scripts/sync-templates.sh --check
+
+Emergency bypass (use sparingly):  git commit --no-verify
+
+EOF
+  exit 1
+fi
+
+exit 0

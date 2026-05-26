@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # sync-templates.sh — regenerates templates/ from the canonical mh-billing-brain files.
 #
-# Usage: ./scripts/sync-templates.sh [--out <dir>]
+# Usage: ./scripts/sync-templates.sh [--out <dir>] [--check]
 #   --out <dir>   write to <dir> instead of ./templates (used by tests)
+#   --check       do not write to ./templates; run sync into a temp dir and
+#                 compare against the current templates/. Exit 0 if in sync,
+#                 exit 1 (and print the diff) if drift is detected. Used by
+#                 the pre-commit hook and CI.
 #
 # This script is run by the maintainer whenever mh-billing-brain's SKILL.md,
 # install.sh, README.md, or brain/ files change. The output is committed.
@@ -13,13 +17,24 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BILLING_DIR="${BILLING_DIR:-$HOME/Claude/mh-billing-brain}"
 OUT_DIR="$REPO_DIR/templates"
+CHECK_MODE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --out) OUT_DIR="$2"; shift 2;;
+    --check) CHECK_MODE=1; shift;;
     *) echo "Unknown arg: $1" >&2; exit 2;;
   esac
 done
+
+# In --check mode, redirect sync output to a temp dir; remember the real
+# templates dir so we can diff against it after the sync runs.
+REAL_OUT_DIR=""
+if [[ $CHECK_MODE -eq 1 ]]; then
+  REAL_OUT_DIR="$OUT_DIR"
+  OUT_DIR="$(mktemp -d)"
+  trap 'rm -rf "$OUT_DIR"' EXIT
+fi
 
 if [[ ! -d "$BILLING_DIR" ]]; then
   echo "Error: BILLING_DIR not found: $BILLING_DIR" >&2
@@ -126,5 +141,16 @@ Raw transcripts from interview sessions, in reverse chronological order. Each se
 
 ---
 EOF
+
+if [[ $CHECK_MODE -eq 1 ]]; then
+  if diff -rq "$REAL_OUT_DIR" "$OUT_DIR" >/dev/null 2>&1; then
+    echo "Templates are in sync with $BILLING_DIR"
+    exit 0
+  fi
+  echo "Drift detected: templates/ does not match what sync-templates.sh would produce from $BILLING_DIR" >&2
+  echo "" >&2
+  diff -ru "$REAL_OUT_DIR" "$OUT_DIR" >&2 || true
+  exit 1
+fi
 
 echo "Templates synced to $OUT_DIR"
