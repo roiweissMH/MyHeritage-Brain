@@ -120,6 +120,19 @@ codebase layer" in SKILL.md.
 - access: requires `gh auth login` with read access to <owner>/<repo>.
 -->
 
+<!--
+Optional: enable the Layer 5 Jira board knowledge source. Uncomment and fill
+in to let the brain query the domain's Jira project as a live source of in-
+flight work, bugs, sprint state, and ownership. See "Domain Jira board layer"
+in SKILL.md.
+
+**Jira:**
+- project_key: <KEY>
+- default_jql_filters: (optional) AND component = "<component-name>"
+- access: requires the Atlassian MCP server connected in Claude Code +
+  Atlassian Cloud auth.
+-->
+
 ---
 
 ## Topic Index

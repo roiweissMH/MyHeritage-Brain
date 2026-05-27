@@ -56,11 +56,53 @@ If a topic in `brain.md` has a `### Code anchors` block listing specific source 
 - **Code wins for current-state questions.** If a brain topic says "product 704 = 30-day trial" and the code at `path:line` says 14 days, the answer is 14 days (cited from code). Then append an Open Question to the affected topic: `[L4 DISCREPANCY YYYY-MM-DD] Topic says X, code at path:line says Y`. The topic owner should refresh.
 - **Code does NOT win for history or rationale.** "Why is product 704's trial 14 days?" is an interview question; the code only tells you the current value, not the reason.
 - **If `gh` isn't authenticated or the repo is unreachable, say so explicitly.** Fall back to brain content with the warning `⚠ Codebase layer unavailable this session — answer is interview-only.`
-- **No `Codebase:` block in `_meta.md` means no L4.** The brain operates with three layers only.
+- **No `Codebase:` block in `_meta.md` means no L4.** The brain operates without this layer.
+
+## Domain Jira board layer (Layer 5 — optional, per-brain)
+
+If the brain's `_meta.md` has a `**Jira:**` block, the brain has access to a *live work-tracking* knowledge layer. Use it for questions about **in-flight work, current status, bugs, sprint state, ownership, and recent history** — things that live in tickets rather than code, references, or interviews.
+
+L5 is distinct from L4 (codebase):
+- **L4 = "how does it work today?"** — current runtime behavior, defined in code.
+- **L5 = "what are we working on / what's broken / what's planned?"** — operational state, defined in tickets.
+
+### When to consult Jira
+
+- The question mentions a ticket ID (e.g., `BILL-1234`).
+- The question is about status / progress / ownership: "what's the status of the cancellation flow revamp?", "who's working on X?", "what's in the current sprint?"
+- The question is about open bugs or incidents: "any open bugs against checkout?", "what was the SEV-1 last month?"
+- The question is about roadmap / planning: "what's planned for Q3?", "what shipped last quarter?"
+- The brain's topics reference initiatives that have Jira tickets (e.g., "automated retries discount engine" → look up the epic).
+
+### How to query
+
+Use the Atlassian MCP tools when connected. Typical patterns:
+
+- **Lookup a specific ticket:** `mcp__atlassian__getJiraIssue(cloudId, issueIdOrKey="BILL-1234")`
+- **Search via JQL:** `mcp__atlassian__searchJiraIssuesUsingJql(cloudId, jql="project = <project_key> AND status = 'In Progress'", fields=["summary","status","assignee","updated"])`
+- **Discover cloudId once per session:** `mcp__atlassian__getAccessibleAtlassianResources()` and cache.
+
+Read `_meta.md`'s `Jira:` block to get `project_key`. If `default_jql_filters` is set, prepend or append to your JQL to scope queries appropriately. If the topic has a `### Jira anchors` block listing specific epics, components, or labels for the topic, use them in your JQL.
+
+Useful JQL patterns:
+- `project = <KEY> AND status not in (Done, Closed) AND updated >= -14d` — currently active.
+- `project = <KEY> AND issuetype = Bug AND status = Open` — open bug list.
+- `project = <KEY> AND fixVersion = "<sprint or version>"` — sprint/release contents.
+- `project = <KEY> AND assignee = currentUser()` — my tickets.
+- `project = <KEY> AND labels = "<topic-relevant-label>"` — topic-scoped ticket history.
+
+### Rules of use
+
+- **Cite the ticket key.** Every fact retrieved from Jira must include the ticket key and (when relevant) status. Format: `(Jira: BILL-1234, status: In Progress, assignee: Lyad, updated: 2026-05-26)`.
+- **Tickets evolve — don't treat their summaries as definitive product truth.** Use Jira for *state* (what's the status, who owns it, what's the latest comment) — not for *strategy or rationale* (which belongs in the brain's topics and references).
+- **Jira does NOT win over the brain for strategy questions.** "Why did we choose X" → interview content is canonical, Jira is supporting evidence at most.
+- **Jira DOES win for current operational state.** Topic says "feature is in design"; Jira says "in QA, ETA Friday" → Jira is current truth. Update the topic at next refresh.
+- **No `Jira:` block in `_meta.md` means no L5.** The brain operates without this layer.
+- **If the Atlassian MCP isn't connected or auth fails, say so explicitly.** Fall back to brain content with `⚠ Jira layer unavailable this session — answer is interview-only.`
 
 ## Hard rules (apply to every command)
 
-1. **No hallucination.** If a fact isn't in `brain.md`, a linked reference under `references/`, the MH common-context sources, or the codebase (Layer 4, when configured) — and actually fetched this session — say "I don't know" and offer to interview. Never fill in from general <DOMAIN> knowledge.
+1. **No hallucination.** If a fact isn't in `brain.md`, a linked reference under `references/`, the MH common-context sources, the codebase (L4, when configured), or Jira (L5, when configured) — and actually fetched this session — say "I don't know" and offer to interview. Never fill in from general <DOMAIN> knowledge.
 2. **Always cite.** Every factual claim cites: topic name, section (Narrative / Facts / History / References), and any references used.
 3. **Always tag status.** Tag each cited fact with the topic's status: `interviewed`, `verified`, or `empty`.
 4. **Reference-thin warning.** If an answer rests on narrative only (no references attached to the cited topic(s)), end the answer with: `⚠ No reference docs attached to this topic — answer is interview-only.`
@@ -76,7 +118,8 @@ If a topic in `brain.md` has a `### Code anchors` block listing specific source 
 2. Identify which topics in `_meta.md` are relevant to the question. If none clearly match, say so and offer to interview a new topic.
 3. Load only the relevant H2 sections from `brain.md`. Read referenced files in `references/` that the relevant topics link to.
 4. If `_meta.md` has a `**Codebase:**` block AND the question implies a current-behavior code fact (specific IDs, prices, durations, flag names, configs, etc.), also consult **Layer 4** per the rules in the "Domain codebase layer" section above — checking topic-level `### Code anchors` first, then `gh search code` as a fallback.
-5. Produce an answer grounded only in what you read. Follow the hard rules above. If facts came from multiple layers, present them with their layer label: `(Topic: ..., status: ...)` vs `(Code: path:line)`.
+5. If `_meta.md` has a `**Jira:**` block AND the question is about in-flight work, current status, bugs, ownership, sprints, roadmap, or references a ticket key, also consult **Layer 5** per the rules in the "Domain Jira board layer" section — checking topic-level `### Jira anchors` first, then JQL search as a fallback.
+6. Produce an answer grounded only in what you read. Follow the hard rules above. If facts came from multiple layers, present them with their layer label: `(Topic: ..., status: ...)` / `(Code: path:line)` / `(Jira: KEY-123, status: ...)`.
 
 **Output format:**
 
