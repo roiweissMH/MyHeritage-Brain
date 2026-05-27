@@ -4,6 +4,10 @@ All notable changes to `/New-Brain` (the scaffolder + skill engine for MyHeritag
 
 <!-- release.sh inserts new entries below this line -->
 
+## 0.4.2 — 2026-05-27
+
+- Refine L4 (Code) posture: confidence ladder (HIGH/MEDIUM/LOW), test-fixture exclusion, feature-flag awareness, deprecation detection
+
 ## 0.4.1 — 2026-05-27
 
 - Refine L5 (Jira) priority model: topics first, Jira supplementary, conflicts surfaced not resolved
