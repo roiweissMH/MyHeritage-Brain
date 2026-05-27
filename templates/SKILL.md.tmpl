@@ -91,14 +91,41 @@ Useful JQL patterns:
 - `project = <KEY> AND assignee = currentUser()` — my tickets.
 - `project = <KEY> AND labels = "<topic-relevant-label>"` — topic-scoped ticket history.
 
-### Rules of use
+### When and how to consult Jira (the priority model)
 
-- **Cite the ticket key.** Every fact retrieved from Jira must include the ticket key and (when relevant) status. Format: `(Jira: BILL-1234, status: In Progress, assignee: Lyad, updated: 2026-05-26)`.
-- **Tickets evolve — don't treat their summaries as definitive product truth.** Use Jira for *state* (what's the status, who owns it, what's the latest comment) — not for *strategy or rationale* (which belongs in the brain's topics and references).
-- **Jira does NOT win over the brain for strategy questions.** "Why did we choose X" → interview content is canonical, Jira is supporting evidence at most.
-- **Jira DOES win for current operational state.** Topic says "feature is in design"; Jira says "in QA, ETA Friday" → Jira is current truth. Update the topic at next refresh.
+Jira ticket data has wildly variable freshness. A `Status: In Progress` ticket might be done. A summary might describe the original plan, not the current pivot. Important context often lives in Slack/PRDs, not in the ticket. So Jira is consulted **conservatively and never as a stand-alone source of truth**. Use this priority order:
+
+1. **Topic content is the primary source. Always.** The brain's curated topics are authoritative for the domain. Do NOT let Jira data replace a topic answer.
+
+2. **Explicit Jira invocations are direct lookups.** When the user (a) includes a ticket key in the question (`BILL-1234`, `DNA-99`, etc.) OR (b) explicitly says "check Jira for…", "look up the ticket for…", "what does the Jira board show for…" — treat that as a direct Jira lookup. Return the ticket data with full citation. The topic content is supplementary in this mode.
+
+3. **Implicit Jira consultation is SUPPLEMENTARY, not primary.** For questions that naturally map to in-flight work (status of X, current ownership of Y, recent bugs against Z), the brain:
+   - First gives the topic-based answer if one exists, presented as the primary answer.
+   - Then OPTIONALLY adds a `Live Jira snapshot:` block with current ticket state — always with the ticket's `updated:` timestamp so the reader can judge freshness.
+   - Does NOT silently overwrite topic content with Jira data.
+
+4. **Pure work-tracking questions go to Jira directly.** Questions like "what's in the current sprint?", "list open bugs filed against checkout in the last 30 days", "show me unassigned tickets" can't be answered from topics — go straight to Jira and present results as Jira-sourced.
+
+5. **Strategy / rationale / unwritten-rules questions: TOPICS ONLY.** "Why did we choose 14 days for the trial?" — do NOT consult Jira. Even if a ticket exists, it'll describe the decision, not the why. Topic content is the only valid source for these.
+
+### Conflict handling — surface, don't resolve
+
+When topic content and Jira appear to disagree:
+
+- **Show both, with timestamps and citations.** Topic first, Jira second. Format:
+  > Per **Topic: Cancellation Flows** (status: interviewed, last-updated 2026-04-12): the revamp is in design phase.
+  > **Live Jira snapshot:** BILL-789 — *"Cancellation page revamp"* — status: **In QA**, assignee: Lyad, updated: 2026-05-26 (yesterday).
+  > ⚠ Topic and Jira disagree. The topic may need refresh, or the ticket may be ahead of the documented narrative. Verify with the topic owner before acting on either.
+
+- **Append to the affected topic's Open Questions:** `[L5 DIVERGENCE YYYY-MM-DD] Topic says X, Jira ticket KEY-123 shows Y as of <ticket updated date>.`
+
+- **NEVER auto-resolve in Jira's favor.** The brain doesn't know which source reflects reality. Jira might be stale (ticket never updated after work paused). Topic might be stale (PM didn't refresh after a sprint shipped). The PM is the arbiter.
+
+### Other rules
+
+- **Cite the ticket key AND its update timestamp.** Every fact retrieved from Jira must include both. Format: `(Jira: BILL-1234, status: In Progress, assignee: Lyad, updated: 2026-05-26)`. A 6-month-old ticket reads very differently from one touched yesterday; freshness must be visible.
 - **No `Jira:` block in `_meta.md` means no L5.** The brain operates without this layer.
-- **If the Atlassian MCP isn't connected or auth fails, say so explicitly.** Fall back to brain content with `⚠ Jira layer unavailable this session — answer is interview-only.`
+- **If the Atlassian MCP isn't connected or auth fails, say so explicitly.** Fall back to topic-only with `⚠ Jira layer unavailable this session — answer is from topics only.`
 
 ## Hard rules (apply to every command)
 
@@ -118,7 +145,12 @@ Useful JQL patterns:
 2. Identify which topics in `_meta.md` are relevant to the question. If none clearly match, say so and offer to interview a new topic.
 3. Load only the relevant H2 sections from `brain.md`. Read referenced files in `references/` that the relevant topics link to.
 4. If `_meta.md` has a `**Codebase:**` block AND the question implies a current-behavior code fact (specific IDs, prices, durations, flag names, configs, etc.), also consult **Layer 4** per the rules in the "Domain codebase layer" section above — checking topic-level `### Code anchors` first, then `gh search code` as a fallback.
-5. If `_meta.md` has a `**Jira:**` block AND the question is about in-flight work, current status, bugs, ownership, sprints, roadmap, or references a ticket key, also consult **Layer 5** per the rules in the "Domain Jira board layer" section — checking topic-level `### Jira anchors` first, then JQL search as a fallback.
+5. If `_meta.md` has a `**Jira:**` block, decide L5's role per the priority model in the "Domain Jira board layer" section:
+   - **Explicit ticket key in question / explicit "check Jira"**: Jira is the primary source.
+   - **Pure work-tracking question** (bug lists, sprint contents, unassigned tickets): Jira is the primary source (topics can't answer).
+   - **In-flight work question with relevant topic** (status / ownership / progress of an initiative): topic answers first; Jira appears as a "Live Jira snapshot" supplement with timestamp.
+   - **Strategy / rationale / unwritten-rules question**: do NOT consult Jira at all. Topics only.
+   When in supplement mode and topic + Jira disagree, **surface the divergence; never auto-resolve.**
 6. Produce an answer grounded only in what you read. Follow the hard rules above. If facts came from multiple layers, present them with their layer label: `(Topic: ..., status: ...)` / `(Code: path:line)` / `(Jira: KEY-123, status: ...)`.
 
 **Output format:**
