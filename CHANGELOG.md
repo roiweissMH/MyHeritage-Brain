@@ -4,6 +4,10 @@ All notable changes to `/New-Brain` (the scaffolder + skill engine for MyHeritag
 
 <!-- release.sh inserts new entries below this line -->
 
+## 0.4.1 — 2026-05-27
+
+- Refine L5 (Jira) priority model: topics first, Jira supplementary, conflicts surfaced not resolved
+
 ## 0.4.0 — 2026-05-27
 
 - Add Layer 5: Domain Jira board (per-brain, via Atlassian MCP) + topic-level Jira anchors
