@@ -52,10 +52,26 @@ If a topic in `brain.md` has a `### Code anchors` block listing specific source 
 
 ### Rules of use
 
-- **Cite `path:line`.** Every fact retrieved from code must include the file path and line number from the actual `gh search code` result. If the line number isn't in the search excerpt, fetch the file via `gh api` and find the line. **Never recall a path or line from training data.**
-- **Code wins for current-state questions.** If a brain topic says "product 704 = 30-day trial" and the code at `path:line` says 14 days, the answer is 14 days (cited from code). Then append an Open Question to the affected topic: `[L4 DISCREPANCY YYYY-MM-DD] Topic says X, code at path:line says Y`. The topic owner should refresh.
+- **Cite `path:line` (+ repo).** Every fact retrieved from code must include the repo, file path, and line number from the actual `gh search code` result. If the line number isn't in the search excerpt, fetch the file via `gh api` and find the line. **Never recall a path or line from training data.**
+
 - **Code does NOT win for history or rationale.** "Why is product 704's trial 14 days?" is an interview question; the code only tells you the current value, not the reason.
-- **If `gh` isn't authenticated or the repo is unreachable, say so explicitly.** Fall back to brain content with the warning `⚠ Codebase layer unavailable this session — answer is interview-only.`
+
+- **Code wins for current-state questions ONLY when the source is canonical.** Code is the runtime reality, but `gh search code` returns *all matches* — and not every match is canonical. Apply this confidence ladder before deferring to code:
+
+   - **HIGH confidence** — single match in a file under `paths_of_interest`, or a clearly-named definitions/constants/config file (e.g., `PlanDefinitions.php`, `plans.yaml`, `config/billing/`). Cite confidently. If the topic disagrees, code wins; append `[L4 DISCREPANCY YYYY-MM-DD] Topic says X, code at <repo>:<path>:<line> says Y` to the topic's Open Questions.
+   - **MEDIUM confidence** — multiple matches, but one is clearly more authoritative (e.g., a const definition vs. a usage site). Present the most likely with `(L4: appears canonical at path:line; N other matches exist — confirm with topic owner if precision matters)`.
+   - **LOW confidence** — only matches in test files / fixtures / mocks, or scattered across many files with no clear primary, or the value is wrapped in feature-flag / env-var / config-service logic. **Do NOT defer to code.** Report what you found, but state explicitly: `⚠ Could not identify a canonical code definition. Falling back to topic content; recommend confirming with topic owner or an engineer.`
+
+- **Test fixtures do NOT win.** A match in `tests/`, `test/`, `__tests__/`, `spec/`, `fixtures/`, `mocks/`, or files matching `*_test.*` / `*.test.*` / `*Spec.*` is **never** authoritative for production behavior. Cite it as "found in test fixture only" if no other match exists.
+
+- **Watch for runtime overrides.** If the value appears with feature-flag wrappers, env-var reads, A/B-test logic, or config-service calls nearby (e.g., `FeatureFlag::isEnabled('...')`, `getenv('...')`, `ConfigService::get('...')`), the literal constant in code is NOT the full picture. Surface the override mechanism in the answer: `(default in code is 14 days at path:line, but value is gated by feature flag <flag-name> at path:line — actual runtime depends on flag state)`.
+
+- **Deprecation signals.** If the file is in a directory hinting at deprecation (`legacy/`, `deprecated/`, `old/`, `archive/`) or the code is marked `@deprecated`, treat the match as LOW confidence regardless of clarity.
+
+- **`main` branch ≠ deployed.** The brain searches the default branch (usually `main`). What's actually running in production might be slightly behind (un-deployed release) or ahead (hotfix not yet merged back). When precision matters (e.g., debugging a live incident), say so: `(value found on main; deployed version may differ)`.
+
+- **If `gh` isn't authenticated or the repo is unreachable, say so explicitly.** Fall back to topic content with the warning `⚠ Codebase layer unavailable this session — answer is from topics only.`
+
 - **No `Codebase:` block in `_meta.md` means no L4.** The brain operates without this layer.
 
 ## Domain Jira board layer (Layer 5 — optional, per-brain)
