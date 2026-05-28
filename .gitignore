@@ -12,3 +12,4 @@ Thumbs.db
 
 # Working decks (kept locally, not tracked in main)
 docs/*.html
+docs/images/
