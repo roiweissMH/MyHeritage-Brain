@@ -213,6 +213,48 @@ Append a `[L6 DIVERGENCE YYYY-MM-DD] Topic says X, Slack message in #<channel> o
 5. **History is dated.** When citing a historical decision, include the date stored with the entry.
 6. **Open questions surface.** When a query touches a topic with open questions, list those open questions at the end of the answer.
 
+## Maintainership & contribution model
+
+Brains use a **PR-based contribution model with an optional maintainer tier**. Editing the brain's content (interview / capture / refresh / verify writes) is allowed for anyone with a clone, but **publishing to the canonical repo** depends on the user's role.
+
+### Two roles
+
+- **Maintainer.** Listed in the `**Maintainers:**` block of `_meta.md` with their `@github-username`. On GitHub: **Maintain** or **Admin** role on the brain repo, allowed to bypass `main` branch protection. May commit and push directly to `main`.
+- **Contributor.** Anyone else with a clone (default for new collaborators). On GitHub: **Read** or **Write** access, but `main` is branch-protected so they cannot push to it. Their workflow: push changes to a feature branch and open a PR; a maintainer reviews and merges.
+
+### What the skill does after every write
+
+After any command that modifies `brain.md` / `_meta.md` / `references/` (interview distill, capture, refresh, verify), the skill:
+
+1. Detects the current user via `gh api user --jq .login` (cache for the session).
+2. Parses the `**Maintainers:**` block from `_meta.md` — extracts `@github-username` per maintainer line.
+3. Compares. If the current user matches a maintainer entry → prints:
+   > ✓ You're a **maintainer** on this brain. Changes are staged in `<repo-path>`. To publish:
+   > `cd <repo-path> && git add . && git commit -m "<your message>" && git push origin main`
+4. If not a match (or if no Maintainers block exists) → prints:
+   > You're a **contributor** on this brain. Changes are local. To publish via PR:
+   > `cd <repo-path> && git checkout -b <slug>-<topic>-<YYYYMMDD> && git add . && git commit -m "<your message>" && git push -u origin <branch> && gh repo set-default <owner>/<repo> && gh pr create --fill`
+5. **Never blocks the write, never auto-pushes.** The skill is advisory; branch protection on GitHub is the actual enforcement layer.
+
+### What the brain owner sets up once
+
+When a brain is first published (or when new maintainers are added):
+
+1. **GitHub Settings → Collaborators:** add each maintainer with **Maintain** role (and contributors with **Read** or **Write**).
+2. **GitHub Settings → Branches → Add rule for `main`:** require pull requests before merging; require approvals from maintainers; allow maintainers to bypass.
+3. **Update `_meta.md`** with the matching `**Maintainers:**` block. Keep the GitHub collaborator list and the `_meta.md` Maintainers list in sync — if they drift, the skill will misadvise.
+4. (Optional) Add a `CODEOWNERS` file mapping `*` to the maintainer set so PR auto-requests reviews from the right people.
+
+### Maintainers block format
+
+```text
+**Maintainers:**
+- <Name> (@<github-username>) — <role/title> — full edit/merge access on the canonical repo
+- <Name> (@<github-username>) — <role/title> — full edit/merge access on the canonical repo
+```
+
+If the block is absent, empty, or no entry matches the current user, the skill treats the user as a contributor.
+
 ## Command: query (default)
 
 **Trigger:** any input that doesn't start with `interview`, `verify`, `status`, `capture`, or `refresh`.

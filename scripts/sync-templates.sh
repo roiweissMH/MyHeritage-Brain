@@ -147,6 +147,11 @@ in SKILL.md.
 - access: requires the Slack MCP connected in Claude Code with workspace auth.
 -->
 
+**Maintainers:**
+- <OWNER> (@<github-username>) — full edit/merge access on the canonical repo
+
+(Anyone else with a clone is a *contributor*: they can interview/capture/refresh locally and publish via PR. See SKILL.md "Maintainership & contribution model" for the workflow. Add more maintainer lines as the team grows.)
+
 ---
 
 ## Topic Index
