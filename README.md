@@ -12,6 +12,7 @@ mh-new-brain/
 ├── SKILL.md                 ← /New-Brain skill definition (5-phase guided bootstrap)
 ├── VERSION                  ← current release version (semver)
 ├── CHANGELOG.md             ← release history (maintained by scripts/release.sh)
+├── brains.txt               ← catalog of known MyHeritage domain brains (name|skill|repo|owner|description)
 ├── install.sh               ← deploys SKILL.md to ~/.claude/skills/New-Brain/
 ├── update.sh                ← user-facing: git pull + reinstall in one command
 ├── scripts/
@@ -20,6 +21,9 @@ mh-new-brain/
 │   ├── release.sh           ← maintainer-only: sync + test + bump + commit + push
 │   ├── install-hooks.sh     ← wires repo-tracked hooks into .git/hooks/
 │   ├── propagate.sh         ← updates every deployed <Domain>-Brain skill from the current template
+│   ├── list-brains.sh       ← prints the catalog of known brains + your access per brain
+│   ├── install-brain.sh     ← clones one brain by short name and runs its install.sh
+│   ├── install-all-brains.sh ← installs every brain in the catalog you have access to
 │   └── hooks/
 │       └── pre-commit       ← blocks commits when templates/ has drifted
 ├── templates/               ← canonical files copied into each new brain
@@ -75,12 +79,25 @@ Then restart Claude Code so it discovers `/New-Brain`. The first time you run it
 
 By default, `install.sh` **copies** files (safe — your clone can move or be deleted without breaking the install). Use `./install.sh --symlink` if you want edits to the deployed file to flow back into your clone.
 
+## Installing existing brains (for users)
+
+To install one (or all) of the domain brains already published — Billing-Brain, DNA-Brain, Site-Brain, etc. — once you have `/New-Brain` itself installed:
+
+```bash
+cd ~/mh-new-brain
+./scripts/list-brains.sh                 # see what's in the catalog + your access per brain
+./scripts/install-brain.sh billing       # install one brain by short name
+./scripts/install-all-brains.sh          # install every brain you have access to
+```
+
+`brains.txt` at the repo root is the catalog. Each entry: `name|skill_name|repo|owner|description`. Brains are private GitHub repos — if you don't have access, contact the owner listed in the catalog and they'll add you as a collaborator. After install, restart Claude Code.
+
 ## Update (for users)
 
 To pull the latest `/New-Brain` and reinstall in one shot:
 
 ```bash
-cd ~/Claude/mh-new-brain
+cd ~/mh-new-brain
 ./update.sh
 ```
 

@@ -1,0 +1,13 @@
+# Catalog of known MyHeritage domain brains.
+#
+# Format: name|skill_name|repo|owner|description
+#   name        short slug used by install-brain.sh (e.g. "billing")
+#   skill_name  full skill name as registered in Claude Code (e.g. "Billing-Brain")
+#   repo        GitHub <owner>/<repo> (private; access via collaborator invite)
+#   owner       human owner of the brain — who to ping for access
+#   description one-line summary of what the brain covers
+#
+# Lines starting with # (or blank lines) are ignored.
+# Maintain this file as new brains come online. Each entry is one row.
+
+billing|Billing-Brain|roiweissMH/MyHeritage-Billing-Brain|Roi Weiss|Plans, payment flows, expirations, cancellations, chargebacks, DNA billing, pricing strategy.

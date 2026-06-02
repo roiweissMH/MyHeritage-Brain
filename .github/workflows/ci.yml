@@ -26,6 +26,9 @@ jobs:
             scripts/release.sh \
             scripts/propagate.sh \
             scripts/install-hooks.sh \
+            scripts/list-brains.sh \
+            scripts/install-brain.sh \
+            scripts/install-all-brains.sh \
             scripts/hooks/pre-commit \
             tests/lib.sh \
             tests/run-all.sh \
