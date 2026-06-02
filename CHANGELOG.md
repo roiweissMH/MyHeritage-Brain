@@ -4,6 +4,10 @@ All notable changes to `/New-Brain` (the scaffolder + skill engine for MyHeritag
 
 <!-- release.sh inserts new entries below this line -->
 
+## 0.5.0 — 2026-06-02
+
+- Add Layer 6: Domain Slack board (per-brain, via Slack MCP) — topic-first / Slack supplementary / one channel per brain. Plus Phase 0 fix: mkdir ~/Claude/ before write-check for fresh PM machines.
+
 ## 0.4.2 — 2026-05-27
 
 - Refine L4 (Code) posture: confidence ladder (HIGH/MEDIUM/LOW), test-fixture exclusion, feature-flag awareness, deprecation detection
