@@ -4,6 +4,10 @@ All notable changes to `/New-Brain` (the scaffolder + skill engine for MyHeritag
 
 <!-- release.sh inserts new entries below this line -->
 
+## 0.7.0 — 2026-06-02
+
+- Add maintainer tier — _meta.md Maintainers block + skill recognizes role via gh user, prints publish guidance (push to main vs. branch + PR). GitHub branch protection is the enforcement layer.
+
 ## 0.6.0 — 2026-06-02
 
 - Add brain catalog + install-brain.sh / install-all-brains.sh / list-brains.sh (consumer install UX)
