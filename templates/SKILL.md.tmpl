@@ -143,9 +143,70 @@ When topic content and Jira appear to disagree:
 - **No `Jira:` block in `_meta.md` means no L5.** The brain operates without this layer.
 - **If the Atlassian MCP isn't connected or auth fails, say so explicitly.** Fall back to topic-only with `⚠ Jira layer unavailable this session — answer is from topics only.`
 
+## Domain Slack layer (Layer 6 — optional, per-brain)
+
+If the brain's `_meta.md` has a `**Slack (team knowledge — Layer 6):**` block, the brain has access to a *live team-chatter* knowledge layer. Use it for questions about **discussions, decisions in flight, war-room threads, alerts, and the human rationale that didn't make it into PRDs or Jira tickets**.
+
+L6 is distinct from L3 (references), L4 (codebase), L5 (Jira):
+- **L3 = "what's the written record?"** — PRDs, sheets, contracts.
+- **L4 = "how does it work today?"** — runtime behavior in code.
+- **L5 = "what are we working on?"** — tickets, sprint state.
+- **L6 = "what did the team actually say about this?"** — Slack messages with timestamps and authors.
+
+### When to consult Slack
+
+- The question references a specific conversation: "what was the thread about the Adyen outage?", "what did Lyad say last week about X?"
+- A topic's open question is the kind only humans can answer ("why was the trial 14 days?") and you've exhausted topics + references — Slack may have the discussion.
+- An incident or alert question — the band channel likely has the war-room thread.
+- The user explicitly names a different channel (e.g., `#alerts_billing`, `#billing-backend`); see "How to query" below.
+
+### How to query
+
+**Default channel is the only channel.** The brain consults exactly one Slack channel: the `channel_id` set in `_meta.md`'s `Slack (team knowledge — Layer 6)` block. Do not widen to other channels unless the user explicitly names one in their question.
+
+Use the Slack MCP tools when connected. Typical patterns:
+
+- **Search message content in the brain channel:** `mcp__plugin_slack_slack__slack_search_public_and_private(query="<terms>", in_channel="<#channel-name from _meta.md>", from_date=..., to_date=...)`
+- **Read the channel:** `mcp__plugin_slack_slack__slack_read_channel(channel_id="<ID from _meta.md>", limit=50)`
+- **Read a thread:** `mcp__plugin_slack_slack__slack_read_thread(channel_id=..., thread_ts=...)`
+- **Resolve a different channel name** *only* when the user explicitly mentioned one: `mcp__plugin_slack_slack__slack_search_channels(query="<name>")`, then query that channel directly as a one-off.
+
+### Priority model (mirrors L5 Jira)
+
+1. **Topics are primary, always.** Slack never replaces a topic answer. Even rich threads. The topic is the curated, distilled version; Slack is raw discussion.
+
+2. **Explicit Slack invocations are direct lookups.** When the user (a) names a channel, (b) names a thread, OR (c) says "search Slack for…", "what did <person> say…", "find the message about…" — treat that as a direct lookup. Return the message data with full citation.
+
+3. **Implicit Slack consultation is SUPPLEMENTARY, not primary.** For questions that mix interpretation + chatter ("status of X", "is anyone working on Y"), the brain:
+   - First gives the topic-based answer (or L5 Jira, if more direct).
+   - Then OPTIONALLY adds a `Live Slack snapshot:` block with the most-recent relevant message(s), each with channel + author + timestamp.
+   - Does NOT silently overwrite topic content with Slack data.
+
+4. **Pure Slack-only questions go to Slack directly.** "What did people post in #alerts_billing yesterday?", "show me the war-room thread for the chargeback spike" — go straight to Slack, present as Slack-sourced.
+
+5. **Strategy / rationale / unwritten-rules questions: TOPICS ONLY.** "Why did we cancel the Bronze/Silver/Gold/Platinum rename?" — do NOT paraphrase Slack discussion. The topic captured the synthesis; Slack has the raw decision-making which may contradict itself, change mid-thread, or be tongue-in-cheek. Quote Slack only when the user explicitly asks for the discussion itself.
+
+### Conflict handling — surface, don't resolve
+
+When topic content and Slack appear to disagree, show both:
+
+> Per **Topic: MyHeritage Plans** (status: interviewed, last-updated 2026-06-01): the Bronze/Silver/Gold/Platinum rename was cancelled.
+> **Live Slack snapshot:** in `#billing_only` on 2026-05-15, Lyad wrote "we're going back to discussing Silver/Gold next quarter" — message link: …
+> ⚠ Topic and Slack disagree. The topic may need refresh, or the Slack thread may reflect a fresh proposal that hasn't been formalized.
+
+Append a `[L6 DIVERGENCE YYYY-MM-DD] Topic says X, Slack message in #<channel> on <date> shows Y` line to the affected topic's Open Questions.
+
+### Other rules
+
+- **Cite channel, author, timestamp, and message URL.** Every Slack-sourced fact must include all four. Format: `(Slack: #channel, <author>, <YYYY-MM-DD HH:MM>, <permalink>)`. Freshness must be visible.
+- **Slack ≠ decision.** A message proposing X is not the same as a decision to do X. Treat threads as discussion, not policy, unless they explicitly say "decided" / "approved" / "we're going with…".
+- **Private content stays private.** Don't quote message content into outputs that may be shared more widely than the channel itself (PRDs, public docs). Cite the link; paraphrase if needed.
+- **No `Slack (team knowledge)` block in `_meta.md` means no L6.** The brain operates without this layer.
+- **If the Slack MCP isn't connected or auth fails, say so explicitly.** Fall back to topic-only with `⚠ Slack layer unavailable this session — answer is from topics + refs only.`
+
 ## Hard rules (apply to every command)
 
-1. **No hallucination.** If a fact isn't in `brain.md`, a linked reference under `references/`, the MH common-context sources, the codebase (L4, when configured), or Jira (L5, when configured) — and actually fetched this session — say "I don't know" and offer to interview. Never fill in from general <DOMAIN> knowledge.
+1. **No hallucination.** If a fact isn't in `brain.md`, a linked reference under `references/`, the MH common-context sources, the codebase (L4, when configured), Jira (L5, when configured), or Slack (L6, when configured) — and actually fetched this session — say "I don't know" and offer to interview. Never fill in from general <DOMAIN> knowledge.
 2. **Always cite.** Every factual claim cites: topic name, section (Narrative / Facts / History / References), and any references used.
 3. **Always tag status.** Tag each cited fact with the topic's status: `interviewed`, `verified`, or `empty`.
 4. **Reference-thin warning.** If an answer rests on narrative only (no references attached to the cited topic(s)), end the answer with: `⚠ No reference docs attached to this topic — answer is interview-only.`
@@ -167,7 +228,13 @@ When topic content and Jira appear to disagree:
    - **In-flight work question with relevant topic** (status / ownership / progress of an initiative): topic answers first; Jira appears as a "Live Jira snapshot" supplement with timestamp.
    - **Strategy / rationale / unwritten-rules question**: do NOT consult Jira at all. Topics only.
    When in supplement mode and topic + Jira disagree, **surface the divergence; never auto-resolve.**
-6. Produce an answer grounded only in what you read. Follow the hard rules above. If facts came from multiple layers, present them with their layer label: `(Topic: ..., status: ...)` / `(Code: path:line)` / `(Jira: KEY-123, status: ...)`.
+6. If `_meta.md` has a `**Slack (team knowledge — Layer 6):**` block, decide L6's role per the priority model in the "Domain Slack layer" section:
+   - **Explicit channel / thread / person mention**: Slack is the primary source.
+   - **Pure Slack-only question** (channel digests, war-room threads, "what did people post"): Slack is the primary source (topics can't answer).
+   - **Discussion-context question with relevant topic**: topic answers first; Slack appears as a "Live Slack snapshot" supplement with channel + author + timestamp.
+   - **Strategy / rationale / unwritten-rules question**: do NOT consult Slack at all. Topics only.
+   When in supplement mode and topic + Slack disagree, **surface the divergence; never auto-resolve.**
+7. Produce an answer grounded only in what you read. Follow the hard rules above. If facts came from multiple layers, present them with their layer label: `(Topic: ..., status: ...)` / `(Code: path:line)` / `(Jira: KEY-123, status: ...)` / `(Slack: #channel, author, YYYY-MM-DD HH:MM, permalink)`.
 
 **Output format:**
 

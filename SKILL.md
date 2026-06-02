@@ -51,13 +51,17 @@ If any output: read the most recent unfinished log, extract the last `### Phase 
 
 If no output: proceed to Check 2.
 
-**Check 2 — Write permissions.** Verify the user can write to `~/Claude/` (where new repos go). Try:
+**Check 2 — Write permissions (and create `~/Claude/` if missing).** Verify the user can write under `~/Claude/` (where new brain repos go). On a fresh PM machine, `~/Claude/` likely doesn't exist yet — create it first, then write-check:
 
 ```bash
-touch "$HOME/Claude/.new-brain-write-check" && rm "$HOME/Claude/.new-brain-write-check"
+mkdir -p "$HOME/Claude" \
+  && touch "$HOME/Claude/.new-brain-write-check" \
+  && rm "$HOME/Claude/.new-brain-write-check"
 ```
 
-If this fails, surface the exact path + a `chmod` suggestion and stop.
+If `mkdir` fails (home directory not writable), surface the exact path + a `chmod`/permissions suggestion and stop. If `mkdir` succeeds but `touch` fails (rare — directory exists but isn't writable), same — surface the path and stop. Otherwise proceed.
+
+Tell the PM (one-liner, only if the folder was just created): *"Created `~/Claude/` — it'll hold this brain and any future brains you bootstrap."* Don't ask permission; this is a benign empty directory.
 
 ## Phase 1 — Domain identity (≈2 min)
 
@@ -96,6 +100,14 @@ Ask, one question at a time. After each answer, confirm it back briefly before m
 
 2. **Anchor docs.** "What are the 1-3 documents you'd hand a new hire as 'read these first'? Confluence URLs, PRDs, dashboards, contracts — whatever's gospel. Title + URL per line. Leave URL blank if it's just a known doc name."
    - Capture as lines `<title>|<url-or-blank>`, written to `/tmp/new-brain-anchors-<SLUG>.txt`.
+
+3. **Live layers (optional but recommended).** Ask three questions in sequence — any can be skipped with "skip" / "later" / empty answer. These wire the brain to live external sources so it can answer "current behavior", "in-flight work", and "what did the team say" questions on top of the curated topics.
+   a. **Codebase (Layer 4).** "Does this domain have a primary code repo I should know about? Format `<owner>/<repo>` (e.g., `myhrtg/Web.mh-web`). I'll wire it up so the brain can answer current-behavior questions via `gh search code`. Skip if no relevant code repo."
+   b. **Jira (Layer 5).** "Does this domain have a Jira project I should know about? Project key like `BIL`, `DNA`, `FTB`. I'll wire it up via the Atlassian MCP so the brain can answer in-flight-work questions (ticket status, sprint contents, ownership). Skip if you don't track in Jira."
+   c. **Team Slack (Layer 6).** "Does this domain have a primary team Slack channel? Channel name like `#billing_only`. **One channel per brain** — this is the single channel the brain will consult when team-chatter context is relevant. Skip if no relevant Slack channel."
+   - For each answer given, write to `/tmp/new-brain-layers-<SLUG>.txt` one line per layer in the form `layer4_repo=<repo>`, `layer5_project=<key>`, `layer6_channel=<#name>`. For Layer 6, also resolve the channel ID via `mcp__plugin_slack_slack__slack_search_channels` and write a second line `layer6_channel_id=<ID>`. Do not search for or attach supplementary channels — by design, each brain has exactly one Slack channel.
+   - Skipped layers: do not write that layer's key.
+   - The corresponding `_meta.md` blocks (`Codebase:`, `Jira:`, `Slack (team knowledge — Layer 6):`) will be written by Phase 4 step 6 below based on this file.
 
 ## Phase 3 — Topic collection (≈3-10 min, hybrid path)
 
@@ -204,7 +216,45 @@ Steps:
 
    If the PM declines, note it in the bootstrap log (`Skipped GitHub push at PM's request on <date>`) and continue. The PM can push later with: `cd ~/Claude/mh-<SLUG>-brain && gh repo create <owner>/MyHeritage-<DOMAIN>-Brain --private --source . --remote origin --push`.
 
-6. **If Phase 2 produced a substantive stakeholder list**, append a `Band & Team` topic block to the new brain's `brain.md`, status `interviewed`, with the stakeholder list as Facts. Use the Edit tool. Format:
+6. **Wire up live layers (L4 / L5 / L6) from Phase 2.3.** Read `/tmp/new-brain-layers-<SLUG>.txt`. For each key present, append a matching block to the new brain's `_meta.md` (inside the front-matter area, before `## Topic Index`). Use the Edit tool; preserve any block that's already present.
+
+   **Layer 4 (Codebase)** — if `layer4_repo=<owner>/<repo>` is set:
+
+   ```markdown
+   **Codebase:**
+   - primary_repo: <owner>/<repo>
+   - paths_of_interest:
+     - (TBD — domain-relevant directories; update as discovered.)
+   - access: requires `gh auth login` with read access to `<owner>/<repo>`.
+   ```
+
+   **Layer 5 (Jira)** — if `layer5_project=<key>` is set:
+
+   ```markdown
+   **Jira:**
+   - cloud_host: myheritage.atlassian.net
+   - project_key: <key>
+   - default_jql_filters: (none yet — add e.g. `AND component in (...)` if generic queries become too broad)
+   - access: requires the Atlassian MCP server connected in Claude Code + Atlassian Cloud auth.
+   ```
+
+   **Layer 6 (Slack — team knowledge)** — if `layer6_channel=<#name>` is set:
+
+   ```markdown
+   **Slack (team knowledge — Layer 6):**
+   - channel_name: <#name>
+   - channel_id: <id from layer6_channel_id>
+   - type: <public|private from search result>
+   - created: <date by creator from search result>
+   - consultation model: **one channel per brain.** The brain consults only this channel by default. If the PM names a different channel in a question, the brain treats it as a one-off direct lookup. See SKILL.md "Domain Slack layer (Layer 6)" section.
+   - access: requires the Slack MCP connected in Claude Code with workspace auth.
+   ```
+
+   **Skipped layers:** do not write a block, do not write a placeholder. The skill detects layer availability via block presence.
+
+   Log to the bootstrap log under `### Phase 4: Live layers wired`: a one-liner per layer noting which were wired or skipped.
+
+7. **If Phase 2 produced a substantive stakeholder list**, append a `Band & Team` topic block to the new brain's `brain.md`, status `interviewed`, with the stakeholder list as Facts. Use the Edit tool. Format:
 
    ```markdown
    ## Band & Team
@@ -237,20 +287,21 @@ Steps:
 
    Then update `_meta.md`'s topic table row for `Band & Team` (if it exists) to `interviewed` status. If `Band & Team` isn't in the topic list, append it.
 
-7. **Write the completion marker.** Append to the new brain's `interview-log.md`:
+8. **Write the completion marker.** Append to the new brain's `interview-log.md`:
 
    ```markdown
    
    ## Bootstrap complete — <bootstrap-date>
    ```
 
-8. **Confirm.** Print:
+9. **Confirm.** Print:
 
    > "✅ `<DOMAIN>` brain bootstrapped.
    > Repo: `~/Claude/mh-<SLUG>-brain/` — pushed to `https://github.com/<owner>/MyHeritage-<DOMAIN>-Brain` (private) [or 'no remote (push skipped)' if PM declined]
    > Skill: `/<SKILL_NAME>` (live; restart Claude Code if it doesn't show up)
    > Brain: `~/Claude/brains/<SLUG>/`
    > Topics seeded: N empty, M interviewed (Band & Team if applicable).
+   > Live layers wired: L4 (codebase) [yes/skipped], L5 (Jira) [yes/skipped], L6 (Slack team channel) [yes/skipped].
    > Reference stubs: K (`/<SKILL_NAME> status` will list them)."
 
 ## Phase 5 — First topic handoff (optional)

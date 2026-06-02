@@ -37,6 +37,20 @@ in SKILL.md.
   Atlassian Cloud auth.
 -->
 
+<!--
+Optional: enable the Layer 6 Slack team-knowledge source. Uncomment and fill
+in to let the brain consult one Slack channel as a live source of team
+chatter, decisions in flight, and human rationale. See "Domain Slack layer"
+in SKILL.md.
+
+**Slack (team knowledge — Layer 6):**
+- channel_name: <#channel-name>
+- channel_id: <CHANNEL_ID>   # stable identifier — use this even if the channel is renamed
+- channel_purpose: <one-line description of what this channel is for>
+- consultation model: **one channel per brain.** This is the only Slack channel the brain consults by default. If the PM explicitly names a different channel in their question, the brain consults that channel as a direct lookup — otherwise it stays within the channel above. See SKILL.md "Domain Slack layer (Layer 6)" section for the priority model.
+- access: requires the Slack MCP connected in Claude Code with workspace auth.
+-->
+
 ---
 
 ## Topic Index
