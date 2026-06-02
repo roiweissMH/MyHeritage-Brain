@@ -24,7 +24,7 @@ This skill bootstraps a new domain brain through a guided conversation. The outp
 1. **Never silently overwrite.** If a new brain's paths already exist, surface the conflict and offer (a) pick a different name, (b) cancel, (c) overwrite with backup. Default is cancel.
 2. **Substitution is deterministic, not creative.** All placeholder values come from PM answers in Phase 1-3 and are passed verbatim to `scripts/scaffold.sh`. Do not paraphrase or "improve" the PM's wording when filling templates.
 3. **Bootstrap conversation is preserved verbatim.** Every Q/A in Phases 1-3 is written into the new brain's `interview-log.md` exactly as the PM said it. This makes the bootstrap auditable.
-4. **Private GitHub repo by default.** `scaffold.sh` does `git init` + initial commit. Phase 4 then **pushes to a private GitHub repo** (`MyHeritage-<DOMAIN>-Brain` under the PM's account) unless the PM declines. The repo is **private** because brain content typically contains internal MyHeritage data. Never push to a public repo.
+4. **Local-only by default; publishing is a separate later step.** `scaffold.sh` does `git init` + initial commit so the brain has local history and is fully usable offline. Phase 4 does **NOT** create any GitHub repo. Publishing happens later into the **shared** consolidated repo `myhrtg/MyHeritage-Brains` (private, MyHeritage-internal) as a subfolder via PR — never a per-brain repo, and never a public repo (brain content typically contains internal MyHeritage data).
 5. **Sandbox writes outside `~/Claude/`.** Writing to `~/.claude/skills/` is outside the default sandbox allowlist. The new brain's `install.sh` will be run as the last scaffold step; if a sandbox error occurs, tell the PM to run `cd ~/Claude/mh-<domain>-brain && ./install.sh` in their terminal manually.
 
 ## Phase 0 — Pre-flight checks
@@ -191,30 +191,30 @@ Steps:
 
    If install fails for a permission reason: tell the PM to run `cd ~/Claude/mh-<SLUG>-brain && ./install.sh` manually in their terminal, then return here.
 
-5. **Push the new brain to a private GitHub repo.** This is the recommended practice for every brain — off-machine backup, collaboration, and recovery story. Tell the PM:
+5. **Local-only by default. Do NOT create a GitHub repo during bootstrap.** The brain is fully usable from its local clone (`scaffold.sh` already did `git init` + initial commit, so there's local history). Publishing is a **separate, later step** into the **shared** consolidated repo — not a per-brain repo created here.
 
-   > "I'll push your brain to a **private** GitHub repo so it has off-machine backup and history. Default name: `MyHeritage-<DOMAIN>-Brain` under your GitHub account. OK to proceed, or want to skip?"
+   Tell the PM:
 
-   If the PM agrees:
-   - Confirm `gh auth status` returns OK. If not, tell the PM to run `gh auth login` and resume Phase 4 from this step.
-   - Detect the GitHub owner: `gh api user --jq .login` (typically the PM's own account).
-   - Create the private repo + remote + push in one shot:
+   > "Your brain is built and installed locally — you can start using `/<Domain>-Brain` right now. Publishing to the shared MyHeritage brain repo is a separate step once that repo is set up (URL to follow) — I'm not creating any GitHub repo now."
 
-     ```bash
-     cd ~/Claude/mh-<SLUG>-brain && gh repo create <owner>/MyHeritage-<DOMAIN>-Brain \
-       --private \
-       --source . \
-       --remote origin \
-       --push \
-       --description "<DESCRIPTION>"
-     ```
+   Do **not** run `gh repo create`. Note in the bootstrap log: `Local-only bootstrap; publishing deferred to shared repo on <date>.`
 
-   - Verify with `git -C ~/Claude/mh-<SLUG>-brain branch -vv` that `main` tracks `origin/main`.
-   - Report the URL: `https://github.com/<owner>/MyHeritage-<DOMAIN>-Brain`.
+   **When the shared repo is live** (`myhrtg/MyHeritage-Brains`, private — confirm the URL with Roi), a PM publishes their brain by contributing it as a subfolder via PR — *not* by creating their own repo:
 
-   **Why private:** brain content typically includes internal MyHeritage data (revenue numbers, employee names, strategic decisions, etc.). Never push public. If `--private` fails because the org/user enforces only-public repos, abort and surface the error — do not fall through to a public push.
+   ```bash
+   # one-time: get the shared repo (you need MyHeritage org read access)
+   git clone https://github.com/myhrtg/MyHeritage-Brains.git ~/MyHeritage-Brains
+   # add your brain as a new subfolder + open a PR
+   cd ~/MyHeritage-Brains
+   git checkout -b add-<SLUG>-brain
+   mkdir -p brains/<SLUG> && cp -R ~/Claude/mh-<SLUG>-brain/. brains/<SLUG>/
+   git add brains/<SLUG> && git commit -m "Add <DOMAIN> brain"
+   git push -u origin HEAD && gh pr create --fill
+   ```
 
-   If the PM declines, note it in the bootstrap log (`Skipped GitHub push at PM's request on <date>`) and continue. The PM can push later with: `cd ~/Claude/mh-<SLUG>-brain && gh repo create <owner>/MyHeritage-<DOMAIN>-Brain --private --source . --remote origin --push`.
+   Per-brain ownership is enforced in the shared repo via `CODEOWNERS` + branch protection (a change to `brains/<SLUG>/**` requires that brain's owner to approve the merge).
+
+   **Never push brain content to a public repo** — it typically includes internal MyHeritage data (revenue numbers, employee names, strategic decisions). The shared repo is private and MyHeritage-internal.
 
 6. **Wire up live layers (L4 / L5 / L6) from Phase 2.3.** Read `/tmp/new-brain-layers-<SLUG>.txt`. For each key present, append a matching block to the new brain's `_meta.md` (inside the front-matter area, before `## Topic Index`). Use the Edit tool; preserve any block that's already present.
 
