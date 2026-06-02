@@ -32,7 +32,7 @@ installed=0
 skipped_no_access=0
 skipped_install_failed=0
 
-while IFS='|' read -r name skill repo owner description; do
+while IFS='|' read -r name skill repo owner _description; do
   [[ "$name" =~ ^[[:space:]]*# ]] && continue
   [[ -z "${name// }" ]] && continue
 
