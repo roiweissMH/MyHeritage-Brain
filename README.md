@@ -24,9 +24,13 @@ cd ~/Product.myheritage-brains
 
 Then **restart Claude Code** and confirm `/New-Brain` and `/Billing-Brain` work.
 
-**Step 2 — only after Step 1 works, delete the old clone:**
+**Step 2 — optional cleanup.** The old clone is harmless to keep — nothing depends on
+it once Step 1 is done. If you'd rather remove it, first make sure it holds no
+un-pushed work (the old model kept brains as local folders under `brains/`), then
+delete it:
 
 ```bash
+cd ~/mh-new-brain && git status     # confirm nothing un-committed / un-pushed
 rm -rf ~/mh-new-brain
 ```
 
